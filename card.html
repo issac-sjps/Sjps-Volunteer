@@ -30,7 +30,9 @@
   .icon { font-size: clamp(48px, 15vw, 64px); line-height: 1; margin-bottom: 6px; }
   .name { font-size: clamp(24px, 7vw, 28px); font-weight: bold; margin: 6px 0; }
   .group { font-size: clamp(16px, 5vw, 19px); margin-bottom: 14px; }
-  .period { font-size: clamp(13px, 4vw, 15px); opacity: 0.9; margin-bottom: 16px; }
+  .period { margin-bottom: 16px; }
+  .period .until { font-size: clamp(18px, 5.5vw, 21px); font-weight: bold; }
+  .period .since { font-size: clamp(11px, 3.5vw, 13px); opacity: 0.8; margin-top: 2px; }
   .status {
     display: inline-block; padding: 5px 16px; border-radius: 20px;
     background: rgba(255,255,255,0.25); font-size: clamp(13px, 4vw, 15px); margin-bottom: 18px;
@@ -67,7 +69,10 @@
       <div class="icon" id="iconText">🙂</div>
       <div class="group" id="groupText">組別志工</div>
       <div class="name" id="nameText">姓名</div>
-      <div class="period" id="periodText">有效期間:11507-11509</div>
+      <div class="period" id="periodText">
+        <div class="until">有效期限至 --</div>
+        <div class="since">(-- 起)</div>
+      </div>
       <div class="status" id="statusText">狀態</div>
       <div class="clock" id="clockText">--:--:--<span class="blink">●</span></div>
       <div class="hint">此畫面時間為裝置即時時間,警衛可請志工當場核對秒數跳動</div>
@@ -97,6 +102,14 @@
       "圖書": "📚",
     };
 
+    function formatROC(yyymm) {
+      const s = String(yyymm);
+      if (s.length < 5) return s;
+      const year = s.slice(0, s.length - 2);
+      const month = s.slice(-2);
+      return `${year}年${month}月`;
+    }
+
     function isWithinPeriod(validFrom, validTo) {
       const now = new Date();
       const rocYear = now.getFullYear() - 1911;
@@ -125,8 +138,10 @@
         document.getElementById("nameText").textContent = data.name || "";
         document.getElementById("groupText").textContent = `${data.group || ""}志工`;
         document.getElementById("iconText").textContent = groupIcons[data.group] || "🙂";
-        document.getElementById("periodText").textContent =
-          `有效期間:${data.validFrom}-${data.validTo}`;
+        document.getElementById("periodText").innerHTML = `
+          <div class="until">有效期限至 ${formatROC(data.validTo)}</div>
+          <div class="since">(${formatROC(data.validFrom)} 起)</div>
+        `;
         document.getElementById("statusText").textContent = valid ? "✅ 可通行" : "⛔ 已失效/停權";
 
         const cardBox = document.getElementById("cardBox");
