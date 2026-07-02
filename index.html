@@ -40,10 +40,10 @@
 <body>
   <div class="box">
     <h1>志工識別證系統登入</h1>
-    <label for="account">帳號(工號)</label>
-    <input type="text" id="account" placeholder="例如 A001" autocomplete="username" />
-    <label for="password">密碼</label>
-    <input type="password" id="password" placeholder="請輸入密碼" autocomplete="current-password" />
+    <label for="account">手機號碼(帳號)</label>
+    <input type="text" id="account" placeholder="請輸入您的手機號碼" autocomplete="username" inputmode="numeric" />
+    <label for="password">手機號碼(密碼)</label>
+    <input type="password" id="password" placeholder="請再輸入一次手機號碼" autocomplete="current-password" />
     <button id="loginBtn">登入</button>
     <div class="msg" id="msg"></div>
     <div class="note">忘記密碼請洽行政室重設</div>
@@ -55,8 +55,8 @@
     const msg = document.getElementById("msg");
     const loginBtn = document.getElementById("loginBtn");
 
-    // 帳號用「工號@sjps-volunteer.local」的假 email 格式對應到 Firebase Auth
-    // 這樣志工只需要輸入工號,不用管 email 格式
+    // 帳號用「手機號碼@sjps-volunteer.local」的假 email 格式對應到 Firebase Auth
+    // 電話號碼天生不會重複,不用擔心同名衝突的問題
     function accountToEmail(account) {
       return `${account.trim()}@sjps-volunteer.local`;
     }
