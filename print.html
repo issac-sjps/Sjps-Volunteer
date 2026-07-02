@@ -11,12 +11,12 @@
     padding: 10px 20px; font-size: 15px; border: none; border-radius: 6px;
     background: #2f6f4f; color: #fff; cursor: pointer; margin: 0 6px;
   }
+  .person-block { max-width: 700px; margin: 0 auto 24px; }
+  .person-title { font-size: 14px; color: #555; margin-bottom: 8px; text-align: center; }
   .sheet {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
-    max-width: 700px;
-    margin: 0 auto;
   }
   .sticker {
     border: 1px dashed #999;
@@ -25,51 +25,75 @@
     background: #fff;
     text-align: center;
   }
+  .sticker .icon { font-size: 28px; }
   .sticker .group { font-size: 13px; color: #555; }
   .sticker .name { font-size: 22px; font-weight: bold; margin: 4px 0; }
   .sticker .period { font-size: 12px; color: #777; }
 
   @media print {
     .toolbar { display: none; }
+    .person-title { display: none; }
     body { padding: 0; background: #fff; }
     .sticker { border: 1px solid #333; break-inside: avoid; }
+    .person-block { break-after: page; }
   }
 </style>
 </head>
 <body>
   <div class="toolbar">
     <button onclick="window.print()">列印</button>
-    <button onclick="window.location.href='card.html'">返回識別證</button>
+    <button onclick="window.location.href='admin.html'">返回編輯頁</button>
   </div>
-  <div class="sheet" id="sheet">載入中...</div>
+  <div id="content">載入中...</div>
 
   <script type="module">
     import { db, doc, getDoc } from "./firebase-config.js";
 
-    const phone = sessionStorage.getItem("volunteerPhone");
-    if (!phone) {
-      window.location.href = "index.html";
+    const groupIcons = {
+      "行政": "🗂️", "課輔": "📖", "導護": "🚦",
+      "醫護": "🩺", "故事": "🦉", "圖書": "📚",
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const phonesParam = params.get("phones");
+    const content = document.getElementById("content");
+
+    if (!phonesParam) {
+      content.textContent = "沒有指定要列印的志工,請從編輯頁選擇後再進來";
     } else {
-      loadSticker(phone);
+      const phones = phonesParam.split(",").map((p) => p.trim()).filter(Boolean);
+      renderAll(phones);
     }
 
-    async function loadSticker(phone) {
-      const snap = await getDoc(doc(db, "volunteers", phone));
-      if (!snap.exists()) return;
-      const data = snap.data();
+    async function renderAll(phones) {
+      content.innerHTML = "";
+      for (const phone of phones) {
+        const snap = await getDoc(doc(db, "volunteers", phone));
+        if (!snap.exists()) continue;
+        const data = snap.data();
 
-      const sheet = document.getElementById("sheet");
-      sheet.innerHTML = "";
+        const block = document.createElement("div");
+        block.className = "person-block";
+        block.innerHTML = `<div class="person-title">${data.name}(${phone})</div>`;
 
-      for (let i = 0; i < 6; i++) {
-        const div = document.createElement("div");
-        div.className = "sticker";
-        div.innerHTML = `
-          <div class="group">${data.group}</div>
-          <div class="name">${data.name}</div>
-          <div class="period">${data.validFrom}-${data.validTo}</div>
-        `;
-        sheet.appendChild(div);
+        const sheet = document.createElement("div");
+        sheet.className = "sheet";
+        for (let i = 0; i < 6; i++) {
+          const div = document.createElement("div");
+          div.className = "sticker";
+          div.innerHTML = `
+            <div class="icon">${groupIcons[data.group] || "🙂"}</div>
+            <div class="group">${data.group}志工</div>
+            <div class="name">${data.name}</div>
+            <div class="period">${data.validFrom}-${data.validTo}</div>
+          `;
+          sheet.appendChild(div);
+        }
+        block.appendChild(sheet);
+        content.appendChild(block);
+      }
+      if (!content.children.length) {
+        content.textContent = "查無資料";
       }
     }
   </script>

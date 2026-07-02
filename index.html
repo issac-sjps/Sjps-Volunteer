@@ -33,6 +33,8 @@
     border: none; border-radius: 6px; font-size: 15px; cursor: pointer;
   }
   button:hover { background: #245a3e; }
+  #adminBtn { background: #7f8c8d; margin-top: 4px; }
+  #adminBtn:hover { background: #6c7a7b; }
   .msg { color: #c0392b; font-size: 13px; margin-top: 10px; text-align: center; min-height: 18px; }
   .note { font-size: 12px; color: #888; margin-top: 16px; text-align: center; }
 </style>
@@ -47,6 +49,7 @@
     <button id="loginBtn">登入</button>
     <div class="msg" id="msg"></div>
     <div class="note">手機號碼與生日皆對正確,才能查看識別證</div>
+    <button id="adminBtn" type="button">管理員登入</button>
   </div>
 
   <script type="module">
@@ -86,6 +89,10 @@
     // 按 Enter 也可以送出
     document.getElementById("birthday").addEventListener("keydown", (e) => {
       if (e.key === "Enter") loginBtn.click();
+    });
+
+    document.getElementById("adminBtn").addEventListener("click", () => {
+      window.location.href = "admin.html";
     });
   </script>
 </body>

@@ -12,13 +12,15 @@
     padding: 8px 16px; font-size: 14px; border: none; border-radius: 6px;
     background: #2f6f4f; color: #fff; cursor: pointer; margin: 0 4px;
   }
-  table { width: 100%; max-width: 1000px; margin: 0 auto; border-collapse: collapse; background: #fff; table-layout: fixed; }
+  table { width: 100%; min-width: 760px; max-width: 1000px; margin: 0 auto; border-collapse: collapse; background: #fff; table-layout: fixed; }
   th, td { border: 1px solid #ddd; padding: 8px; font-size: 14px; text-align: center; vertical-align: middle; }
   th { background: #34495e; color: #fff; }
   input, select { width: 100%; padding: 6px 4px; font-size: 13px; box-sizing: border-box; }
-  .save-btn, .del-btn { margin-top: 4px; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; color: #fff; }
+  .save-btn, .del-btn, .print-btn { margin-top: 4px; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; color: #fff; }
   .save-btn { background: #2980b9; }
   .del-btn { background: #c0392b; }
+  .print-btn { background: #8e44ad; }
+  .table-wrap { overflow-x: auto; }
   .new-tag { color: #2980b9; font-size: 12px; margin-top: 2px; }
   .lock-screen {
     position: fixed; inset: 0; background: #eef1f3;
@@ -50,11 +52,15 @@
     <div class="hint">新增志工:輸入姓名、手機號碼、民國生日、組別、有效期間後按「儲存」即可(手機號碼建立後不可修改,如果打錯要用「刪除」後重新新增)</div>
     <div class="toolbar">
       <button id="addBtn">新增志工</button>
+      <button id="printSelectedBtn">列印所選</button>
+      <button id="printAllBtn">列印全部</button>
       <button onclick="window.location.href='card.html'">返回識別證</button>
     </div>
+    <div class="table-wrap">
     <table>
       <thead>
         <tr>
+          <th style="width:36px;"><input type="checkbox" id="checkAll" /></th>
           <th>姓名</th>
           <th>手機號碼(帳號)</th>
           <th>民國生日(密碼)</th>
@@ -67,6 +73,7 @@
       </thead>
       <tbody id="tableBody"></tbody>
     </table>
+    </div>
   </div>
 
   <script type="module">
@@ -112,6 +119,7 @@
       tr.dataset.phoneId = phoneId || "";
 
       tr.innerHTML = `
+        <td>${!isNew ? `<input type="checkbox" class="rowCheck" />` : ""}</td>
         <td><input type="text" class="nameInput" value="${data.name || ""}" /></td>
         <td>
           <input type="text" class="phoneInput" value="${data.phone || phoneId || ""}" placeholder="0912345678" ${isNew ? "" : "readonly"} />
@@ -129,7 +137,7 @@
         </td>
         <td>
           <button class="save-btn">儲存</button>
-          ${!isNew ? `<button class="del-btn">刪除</button>` : ""}
+          ${!isNew ? `<button class="print-btn">列印</button><button class="del-btn">刪除</button>` : ""}
         </td>
       `;
       tbody.appendChild(tr);
@@ -176,10 +184,46 @@
           }
         });
       }
+
+      const printBtn = tr.querySelector(".print-btn");
+      if (printBtn) {
+        printBtn.addEventListener("click", () => {
+          window.location.href = `print.html?phones=${encodeURIComponent(phoneId)}`;
+        });
+      }
     }
 
     document.getElementById("addBtn").addEventListener("click", () => {
       addRow(null, {}, true);
+    });
+
+    document.getElementById("checkAll").addEventListener("change", (e) => {
+      document.querySelectorAll(".rowCheck").forEach((cb) => (cb.checked = e.target.checked));
+    });
+
+    document.getElementById("printSelectedBtn").addEventListener("click", () => {
+      const phones = [];
+      document.querySelectorAll("#tableBody tr").forEach((tr) => {
+        const cb = tr.querySelector(".rowCheck");
+        if (cb && cb.checked && tr.dataset.phoneId) phones.push(tr.dataset.phoneId);
+      });
+      if (!phones.length) {
+        alert("請先勾選要列印的志工");
+        return;
+      }
+      window.location.href = `print.html?phones=${encodeURIComponent(phones.join(","))}`;
+    });
+
+    document.getElementById("printAllBtn").addEventListener("click", () => {
+      const phones = [];
+      document.querySelectorAll("#tableBody tr").forEach((tr) => {
+        if (tr.dataset.phoneId) phones.push(tr.dataset.phoneId);
+      });
+      if (!phones.length) {
+        alert("目前沒有志工資料");
+        return;
+      }
+      window.location.href = `print.html?phones=${encodeURIComponent(phones.join(","))}`;
     });
   </script>
 </body>

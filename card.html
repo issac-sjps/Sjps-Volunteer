@@ -2,9 +2,10 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
 <title>志工識別證</title>
 <style>
+  * { box-sizing: border-box; }
   body {
     font-family: "Microsoft JhengHei", sans-serif;
     background: #eef1f3;
@@ -14,41 +15,47 @@
     justify-content: center;
     min-height: 100vh;
     margin: 0;
+    padding: 16px;
   }
   .card {
-    width: 320px;
-    border-radius: 16px;
-    padding: 24px;
+    width: 100%;
+    max-width: 340px;
+    border-radius: 20px;
+    padding: 28px 20px;
     color: #fff;
     box-shadow: 0 6px 20px rgba(0,0,0,0.2);
     text-align: center;
   }
   .card.expired { background: #7f8c8d !important; }
-  .name { font-size: 26px; font-weight: bold; margin: 8px 0; }
-  .group { font-size: 18px; margin-bottom: 12px; }
-  .period { font-size: 15px; opacity: 0.9; margin-bottom: 16px; }
+  .icon { font-size: clamp(48px, 15vw, 64px); line-height: 1; margin-bottom: 6px; }
+  .name { font-size: clamp(24px, 7vw, 28px); font-weight: bold; margin: 6px 0; }
+  .group { font-size: clamp(16px, 5vw, 19px); margin-bottom: 14px; }
+  .period { font-size: clamp(13px, 4vw, 15px); opacity: 0.9; margin-bottom: 16px; }
   .status {
-    display: inline-block; padding: 4px 14px; border-radius: 20px;
-    background: rgba(255,255,255,0.25); font-size: 14px; margin-bottom: 16px;
+    display: inline-block; padding: 5px 16px; border-radius: 20px;
+    background: rgba(255,255,255,0.25); font-size: clamp(13px, 4vw, 15px); margin-bottom: 18px;
   }
   .clock {
-    font-size: 22px; font-weight: bold; letter-spacing: 1px;
-    background: rgba(0,0,0,0.15); border-radius: 8px; padding: 8px;
+    font-size: clamp(20px, 6vw, 24px); font-weight: bold; letter-spacing: 1px;
+    background: rgba(0,0,0,0.15); border-radius: 10px; padding: 10px;
   }
   .clock .blink { opacity: 1; animation: blink 1s steps(1) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
-  .hint { font-size: 12px; margin-top: 10px; opacity: 0.85; }
-  .bottom-bar { margin-top: 20px; display: flex; gap: 10px; }
+  .hint { font-size: 11px; margin-top: 10px; opacity: 0.85; }
+  .bottom-bar { margin-top: 18px; width: 100%; max-width: 340px; }
   .bottom-bar button {
-    padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;
+    width: 100%; padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-size: 15px;
   }
   #logoutBtn { background: #c0392b; color: #fff; }
-  #printBtn { background: #2f6f4f; color: #fff; }
   .loading { color: #555; font-size: 15px; }
   #editBtn {
-    position: fixed; top: 14px; right: 14px;
-    padding: 6px 12px; font-size: 13px; border: none; border-radius: 6px;
-    background: #34495e; color: #fff; cursor: pointer; opacity: 0.85;
+    position: fixed; top: 12px; right: 12px;
+    padding: 8px 14px; font-size: 13px; border: none; border-radius: 8px;
+    background: #34495e; color: #fff; cursor: pointer; opacity: 0.9;
+    z-index: 10;
+  }
+  @media (max-width: 380px) {
+    #editBtn { top: 8px; right: 8px; padding: 6px 10px; font-size: 12px; }
   }
 </style>
 </head>
@@ -57,7 +64,8 @@
   <div id="loading" class="loading">載入中...</div>
   <div id="cardWrap" style="display:none;">
     <div class="card" id="cardBox">
-      <div class="group" id="groupText">組別</div>
+      <div class="icon" id="iconText">🙂</div>
+      <div class="group" id="groupText">組別志工</div>
       <div class="name" id="nameText">姓名</div>
       <div class="period" id="periodText">有效期間:11507-11509</div>
       <div class="status" id="statusText">狀態</div>
@@ -65,7 +73,6 @@
       <div class="hint">此畫面時間為裝置即時時間,警衛可請志工當場核對秒數跳動</div>
     </div>
     <div class="bottom-bar">
-      <button id="printBtn">列印貼紙</button>
       <button id="logoutBtn">登出</button>
     </div>
   </div>
@@ -80,6 +87,14 @@
       "醫護": "#c0392b",
       "故事": "#8e44ad",
       "圖書": "#d35400",
+    };
+    const groupIcons = {
+      "行政": "🗂️",
+      "課輔": "📖",
+      "導護": "🚦",
+      "醫護": "🩺",
+      "故事": "🦉",
+      "圖書": "📚",
     };
 
     function isWithinPeriod(validFrom, validTo) {
@@ -108,7 +123,8 @@
         const valid = isWithinPeriod(data.validFrom, data.validTo) && data.status === "active";
 
         document.getElementById("nameText").textContent = data.name || "";
-        document.getElementById("groupText").textContent = data.group || "";
+        document.getElementById("groupText").textContent = `${data.group || ""}志工`;
+        document.getElementById("iconText").textContent = groupIcons[data.group] || "🙂";
         document.getElementById("periodText").textContent =
           `有效期間:${data.validFrom}-${data.validTo}`;
         document.getElementById("statusText").textContent = valid ? "✅ 可通行" : "⛔ 已失效/停權";
@@ -126,7 +142,6 @@
           document.getElementById("clockText").innerHTML = `${t}<span class="blink">●</span>`;
         }, 1000);
 
-        // 30 分鐘沒操作自動登出
         setTimeout(() => {
           sessionStorage.removeItem("volunteerPhone");
           window.location.href = "index.html";
@@ -140,10 +155,6 @@
     document.getElementById("logoutBtn").addEventListener("click", () => {
       sessionStorage.removeItem("volunteerPhone");
       window.location.href = "index.html";
-    });
-
-    document.getElementById("printBtn").addEventListener("click", () => {
-      window.location.href = "print.html";
     });
   </script>
 </body>
