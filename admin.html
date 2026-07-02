@@ -3,86 +3,193 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>志工登入 - SJPS Volunteer</title>
+<title>志工資料編輯</title>
 <style>
-  body {
-    font-family: "Microsoft JhengHei", sans-serif;
-    background: #f2f5f7;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    margin: 0;
+  body { font-family: "Microsoft JhengHei", sans-serif; background: #f2f5f7; margin: 0; padding: 20px; }
+  h1 { text-align: center; color: #234; font-size: 20px; }
+  .toolbar { text-align: center; margin-bottom: 20px; }
+  .toolbar button {
+    padding: 8px 16px; font-size: 14px; border: none; border-radius: 6px;
+    background: #2f6f4f; color: #fff; cursor: pointer; margin: 0 4px;
   }
-  .box {
-    background: #fff;
-    padding: 32px;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-    width: 320px;
+  table { width: 100%; max-width: 950px; margin: 0 auto; border-collapse: collapse; background: #fff; }
+  th, td { border: 1px solid #ddd; padding: 8px; font-size: 14px; text-align: center; }
+  th { background: #34495e; color: #fff; }
+  input, select { width: 90%; padding: 4px; font-size: 13px; box-sizing: border-box; }
+  .save-btn { background: #2980b9; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+  .del-btn { background: #c0392b; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+  .new-tag { color: #2980b9; font-size: 12px; }
+  .lock-screen {
+    position: fixed; inset: 0; background: #eef1f3;
+    display: flex; align-items: center; justify-content: center;
   }
-  h1 { font-size: 20px; text-align: center; margin-bottom: 24px; color: #234; }
-  label { display: block; font-size: 14px; margin-bottom: 4px; color: #555; }
-  input {
-    width: 100%; padding: 10px; margin-bottom: 16px;
-    border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;
-    font-size: 15px;
+  .lock-box {
+    background: #fff; padding: 32px; border-radius: 12px; width: 280px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1); text-align: center;
   }
-  button {
-    width: 100%; padding: 10px; background: #2f6f4f; color: #fff;
-    border: none; border-radius: 6px; font-size: 15px; cursor: pointer;
-  }
-  button:hover { background: #245a3e; }
-  .msg { color: #c0392b; font-size: 13px; margin-top: 10px; text-align: center; min-height: 18px; }
-  .note { font-size: 12px; color: #888; margin-top: 16px; text-align: center; }
+  .lock-box input { width: 100%; padding: 10px; margin: 12px 0; box-sizing: border-box; font-size: 15px; }
+  .lock-box button { width: 100%; padding: 10px; background: #2f6f4f; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+  .err { color: #c0392b; font-size: 13px; min-height: 18px; }
+  .hint { max-width: 950px; margin: 0 auto 16px; font-size: 13px; color: #666; text-align: center; }
 </style>
 </head>
 <body>
-  <div class="box">
-    <h1>志工識別證系統登入</h1>
-    <label for="account">手機號碼(帳號)</label>
-    <input type="text" id="account" placeholder="請輸入您的手機號碼" autocomplete="username" inputmode="numeric" />
-    <label for="password">手機號碼(密碼)</label>
-    <input type="password" id="password" placeholder="請再輸入一次手機號碼" autocomplete="current-password" />
-    <button id="loginBtn">登入</button>
-    <div class="msg" id="msg"></div>
-    <div class="note">忘記密碼請洽行政室重設</div>
+
+  <div class="lock-screen" id="lockScreen">
+    <div class="lock-box">
+      <div>請輸入管理密碼</div>
+      <input type="password" id="pwdInput" placeholder="密碼" />
+      <button id="unlockBtn">確認</button>
+      <div class="err" id="pwdErr"></div>
+    </div>
+  </div>
+
+  <div id="mainContent" style="display:none;">
+    <h1>志工資料編輯</h1>
+    <div class="hint">新增志工:輸入手機號碼、姓名、組別、有效期間後按「儲存」,系統會自動建立登入帳號(帳號密碼皆為該手機號碼)</div>
+    <div class="toolbar">
+      <button id="addBtn">新增志工</button>
+      <button onclick="window.location.href='card.html'">返回識別證</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>手機號碼(帳號)</th>
+          <th>姓名</th>
+          <th>組別</th>
+          <th>起始 (民國年月)</th>
+          <th>結束 (民國年月)</th>
+          <th>狀態</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
   </div>
 
   <script type="module">
-    import { auth, signInWithEmailAndPassword, onAuthStateChanged } from "./firebase-config.js";
+    import {
+      auth, db, collection, getDocs, doc, setDoc, updateDoc, deleteDoc,
+      createUserWithEmailAndPassword, signOut,
+    } from "./firebase-config.js";
 
-    const msg = document.getElementById("msg");
-    const loginBtn = document.getElementById("loginBtn");
+    const ADMIN_PASSWORD = "073411373";
+    const groups = ["行政", "課輔", "導護", "醫護", "故事", "圖書"];
 
-    // 帳號用「手機號碼@sjps-volunteer.local」的假 email 格式對應到 Firebase Auth
-    // 電話號碼天生不會重複,不用擔心同名衝突的問題
-    function accountToEmail(account) {
-      return `${account.trim()}@sjps-volunteer.local`;
-    }
-
-    loginBtn.addEventListener("click", async () => {
-      const account = document.getElementById("account").value;
-      const password = document.getElementById("password").value;
-      if (!account || !password) {
-        msg.textContent = "請輸入帳號與密碼";
-        return;
-      }
-      msg.textContent = "登入中...";
-      try {
-        await signInWithEmailAndPassword(auth, accountToEmail(account), password);
-        window.location.href = "card.html";
-      } catch (err) {
-        console.error(err);
-        msg.textContent = "帳號或密碼錯誤";
+    document.getElementById("unlockBtn").addEventListener("click", () => {
+      const input = document.getElementById("pwdInput").value;
+      if (input === ADMIN_PASSWORD) {
+        document.getElementById("lockScreen").style.display = "none";
+        document.getElementById("mainContent").style.display = "block";
+        loadVolunteers();
+      } else {
+        document.getElementById("pwdErr").textContent = "密碼錯誤";
       }
     });
+    document.getElementById("pwdInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("unlockBtn").click();
+    });
 
-    // 如果已經登入過,直接跳轉
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        window.location.href = "card.html";
+    function groupOptions(selected) {
+      return groups
+        .map((g) => `<option value="${g}" ${g === selected ? "selected" : ""}>${g}</option>`)
+        .join("");
+    }
+
+    async function loadVolunteers() {
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "<tr><td colspan='7'>載入中...</td></tr>";
+      const snap = await getDocs(collection(db, "volunteers"));
+      tbody.innerHTML = "";
+      snap.forEach((docSnap) => {
+        addRow(docSnap.id, docSnap.data(), false);
+      });
+    }
+
+    // isNew = true 代表這是尚未建立 Firebase Auth 帳號的新志工列
+    function addRow(uid, data = {}, isNew = true) {
+      const tbody = document.getElementById("tableBody");
+      const tr = document.createElement("tr");
+      tr.dataset.uid = uid || "";
+
+      tr.innerHTML = `
+        <td>
+          <input type="text" class="phoneInput" value="${data.phone || ""}" placeholder="0912345678" ${isNew ? "" : "readonly"} />
+          ${isNew ? '<div class="new-tag">尚未建立,儲存後自動開通</div>' : ""}
+        </td>
+        <td><input type="text" class="nameInput" value="${data.name || ""}" /></td>
+        <td><select class="groupInput">${groupOptions(data.group)}</select></td>
+        <td><input type="text" class="fromInput" value="${data.validFrom || ""}" placeholder="11507" /></td>
+        <td><input type="text" class="toInput" value="${data.validTo || ""}" placeholder="11509" /></td>
+        <td>
+          <select class="statusInput">
+            <option value="active" ${data.status === "active" ? "selected" : ""}>啟用</option>
+            <option value="suspended" ${data.status === "suspended" ? "selected" : ""}>停權</option>
+          </select>
+        </td>
+        <td>
+          <button class="save-btn">儲存</button>
+          ${!isNew ? `<button class="del-btn">刪除</button>` : ""}
+        </td>
+      `;
+      tbody.appendChild(tr);
+
+      tr.querySelector(".save-btn").addEventListener("click", async () => {
+        const phone = tr.querySelector(".phoneInput").value.trim();
+        if (!phone) {
+          alert("請輸入手機號碼");
+          return;
+        }
+        const payload = {
+          phone,
+          name: tr.querySelector(".nameInput").value.trim(),
+          group: tr.querySelector(".groupInput").value,
+          validFrom: tr.querySelector(".fromInput").value.trim(),
+          validTo: tr.querySelector(".toInput").value.trim(),
+          status: tr.querySelector(".statusInput").value,
+        };
+
+        try {
+          if (isNew) {
+            // 新志工:自動建立 Firebase Auth 帳號(帳號密碼皆為手機號碼)
+            const email = `${phone}@sjps-volunteer.local`;
+            const cred = await createUserWithEmailAndPassword(auth, email, phone);
+            await setDoc(doc(db, "volunteers", cred.user.uid), payload);
+            await signOut(auth);
+            alert("已建立並儲存,志工現在可以用手機號碼登入");
+          } else {
+            // 既有志工:只更新 Firestore 資料,不動帳號密碼
+            await updateDoc(doc(db, "volunteers", tr.dataset.uid), payload);
+            alert("已儲存");
+          }
+          loadVolunteers();
+        } catch (err) {
+          console.error(err);
+          if (err.code === "auth/email-already-in-use") {
+            alert("這支手機號碼已經建立過帳號了,請確認號碼是否重複輸入");
+          } else {
+            alert("儲存失敗:" + err.message);
+          }
+        }
+      });
+
+      const delBtn = tr.querySelector(".del-btn");
+      if (delBtn) {
+        delBtn.addEventListener("click", async () => {
+          if (!confirm(`確定要刪除「${data.name}」的資料嗎?(僅刪除資料,登入帳號需另到 Firebase Console 手動刪除)`)) return;
+          try {
+            await deleteDoc(doc(db, "volunteers", uid));
+            tr.remove();
+          } catch (err) {
+            console.error(err);
+            alert("刪除失敗:" + err.message);
+          }
+        });
       }
+    }
+
+    document.getElementById("addBtn").addEventListener("click", () => {
+      addRow(null, {}, true);
     });
   </script>
 </body>
