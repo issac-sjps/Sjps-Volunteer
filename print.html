@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>列印志工貼紙</title>
+<style>
+  body { font-family: "Microsoft JhengHei", sans-serif; background: #f2f5f7; margin: 0; padding: 20px; }
+  .toolbar { text-align: center; margin-bottom: 20px; }
+  .toolbar button {
+    padding: 10px 20px; font-size: 15px; border: none; border-radius: 6px;
+    background: #2f6f4f; color: #fff; cursor: pointer; margin: 0 6px;
+  }
+  .sheet {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .sticker {
+    border: 1px dashed #999;
+    border-radius: 10px;
+    padding: 14px;
+    background: #fff;
+    text-align: center;
+  }
+  .sticker .group { font-size: 13px; color: #555; }
+  .sticker .name { font-size: 22px; font-weight: bold; margin: 4px 0; }
+  .sticker .period { font-size: 12px; color: #777; }
+
+  @media print {
+    .toolbar { display: none; }
+    body { padding: 0; background: #fff; }
+    .sticker { border: 1px solid #333; break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="window.print()">列印</button>
+    <button onclick="window.location.href='card.html'">返回識別證</button>
+  </div>
+  <div class="sheet" id="sheet">載入中...</div>
+
+  <script type="module">
+    import { auth, db, doc, getDoc, onAuthStateChanged } from "./firebase-config.js";
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+      const snap = await getDoc(doc(db, "volunteers", user.uid));
+      if (!snap.exists()) return;
+      const data = snap.data();
+
+      const sheet = document.getElementById("sheet");
+      sheet.innerHTML = "";
+
+      // 一次印 6 張同樣的貼紙,方便黏貼多張識別卡
+      for (let i = 0; i < 6; i++) {
+        const div = document.createElement("div");
+        div.className = "sticker";
+        div.innerHTML = `
+          <div class="group">${data.group}</div>
+          <div class="name">${data.name}</div>
+          <div class="period">${data.validFrom}-${data.validTo}</div>
+        `;
+        sheet.appendChild(div);
+      }
+    });
+  </script>
+</body>
+</html>
