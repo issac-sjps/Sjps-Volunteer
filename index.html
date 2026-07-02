@@ -1,1 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>志工登入 - SJPS Volunteer</title>
+<style>
+  body {
+    font-family: "Microsoft JhengHei", sans-serif;
+    background: #f2f5f7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+  }
+  .box {
+    background: #fff;
+    padding: 32px;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    width: 320px;
+  }
+  h1 { font-size: 20px; text-align: center; margin-bottom: 24px; color: #234; }
+  label { display: block; font-size: 14px; margin-bottom: 4px; color: #555; }
+  input {
+    width: 100%; padding: 10px; margin-bottom: 16px;
+    border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;
+    font-size: 15px;
+  }
+  button {
+    width: 100%; padding: 10px; background: #2f6f4f; color: #fff;
+    border: none; border-radius: 6px; font-size: 15px; cursor: pointer;
+  }
+  button:hover { background: #245a3e; }
+  .msg { color: #c0392b; font-size: 13px; margin-top: 10px; text-align: center; min-height: 18px; }
+  .note { font-size: 12px; color: #888; margin-top: 16px; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>志工識別證系統登入</h1>
+    <label for="account">帳號(工號)</label>
+    <input type="text" id="account" placeholder="例如 A001" autocomplete="username" />
+    <label for="password">密碼</label>
+    <input type="password" id="password" placeholder="請輸入密碼" autocomplete="current-password" />
+    <button id="loginBtn">登入</button>
+    <div class="msg" id="msg"></div>
+    <div class="note">忘記密碼請洽行政室重設</div>
+  </div>
 
+  <script type="module">
+    import { auth, signInWithEmailAndPassword, onAuthStateChanged } from "./firebase-config.js";
+
+    const msg = document.getElementById("msg");
+    const loginBtn = document.getElementById("loginBtn");
+
+    // 帳號用「工號@sjps-volunteer.local」的假 email 格式對應到 Firebase Auth
+    // 這樣志工只需要輸入工號,不用管 email 格式
+    function accountToEmail(account) {
+      return `${account.trim()}@sjps-volunteer.local`;
+    }
+
+    loginBtn.addEventListener("click", async () => {
+      const account = document.getElementById("account").value;
+      const password = document.getElementById("password").value;
+      if (!account || !password) {
+        msg.textContent = "請輸入帳號與密碼";
+        return;
+      }
+      msg.textContent = "登入中...";
+      try {
+        await signInWithEmailAndPassword(auth, accountToEmail(account), password);
+        window.location.href = "card.html";
+      } catch (err) {
+        console.error(err);
+        msg.textContent = "帳號或密碼錯誤";
+      }
+    });
+
+    // 如果已經登入過,直接跳轉
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window.location.href = "card.html";
+      }
+    });
+  </script>
+</body>
+</html>
