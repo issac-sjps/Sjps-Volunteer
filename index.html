@@ -40,49 +40,52 @@
 <body>
   <div class="box">
     <h1>志工識別證系統登入</h1>
-    <label for="account">手機號碼(帳號)</label>
-    <input type="text" id="account" placeholder="請輸入您的手機號碼" autocomplete="username" inputmode="numeric" />
-    <label for="password">手機號碼(密碼)</label>
-    <input type="password" id="password" placeholder="請再輸入一次手機號碼" autocomplete="current-password" />
+    <label for="phone">手機號碼</label>
+    <input type="text" id="phone" placeholder="請輸入手機號碼" inputmode="numeric" autocomplete="off" />
+    <label for="birthday">民國生日(例如 791130)</label>
+    <input type="text" id="birthday" placeholder="請輸入民國生日 6 碼" inputmode="numeric" autocomplete="off" />
     <button id="loginBtn">登入</button>
     <div class="msg" id="msg"></div>
-    <div class="note">忘記密碼請洽行政室重設</div>
+    <div class="note">手機號碼與生日皆對正確,才能查看識別證</div>
   </div>
 
   <script type="module">
-    import { auth, signInWithEmailAndPassword, onAuthStateChanged } from "./firebase-config.js";
+    import { db, doc, getDoc } from "./firebase-config.js";
 
     const msg = document.getElementById("msg");
     const loginBtn = document.getElementById("loginBtn");
 
-    // 帳號用「手機號碼@sjps-volunteer.local」的假 email 格式對應到 Firebase Auth
-    // 電話號碼天生不會重複,不用擔心同名衝突的問題
-    function accountToEmail(account) {
-      return `${account.trim()}@sjps-volunteer.local`;
-    }
-
     loginBtn.addEventListener("click", async () => {
-      const account = document.getElementById("account").value;
-      const password = document.getElementById("password").value;
-      if (!account || !password) {
-        msg.textContent = "請輸入帳號與密碼";
+      const phone = document.getElementById("phone").value.trim();
+      const birthday = document.getElementById("birthday").value.trim();
+      if (!phone || !birthday) {
+        msg.textContent = "請輸入手機號碼與生日";
         return;
       }
-      msg.textContent = "登入中...";
+      msg.textContent = "查詢中...";
       try {
-        await signInWithEmailAndPassword(auth, accountToEmail(account), password);
+        const snap = await getDoc(doc(db, "volunteers", phone));
+        if (!snap.exists()) {
+          msg.textContent = "查無此手機號碼,請確認是否輸入正確";
+          return;
+        }
+        const data = snap.data();
+        if (String(data.birthday) !== birthday) {
+          msg.textContent = "生日不正確";
+          return;
+        }
+        // 驗證成功,把手機號碼存到瀏覽器的 sessionStorage(關閉分頁就會清除)
+        sessionStorage.setItem("volunteerPhone", phone);
         window.location.href = "card.html";
       } catch (err) {
         console.error(err);
-        msg.textContent = "帳號或密碼錯誤";
+        msg.textContent = "查詢失敗,請稍後再試";
       }
     });
 
-    // 如果已經登入過,直接跳轉
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        window.location.href = "card.html";
-      }
+    // 按 Enter 也可以送出
+    document.getElementById("birthday").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") loginBtn.click();
     });
   </script>
 </body>

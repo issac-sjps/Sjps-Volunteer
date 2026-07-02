@@ -1,14 +1,8 @@
 // firebase-config.js
 // 共用的 Firebase 初始化設定,所有頁面都會 import 這個檔案
+// 這個版本不使用 Firebase Authentication,直接用 Firestore 儲存/查詢資料
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import {
-  getAuth,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import {
   getFirestore,
   doc,
@@ -31,14 +25,9 @@ const firebaseConfig = {
 };
 
 export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
 export const db = getFirestore(app);
 
 export {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
   doc,
   getDoc,
   collection,

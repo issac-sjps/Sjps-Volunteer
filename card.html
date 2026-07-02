@@ -38,9 +38,7 @@
   .clock .blink { opacity: 1; animation: blink 1s steps(1) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
   .hint { font-size: 12px; margin-top: 10px; opacity: 0.85; }
-  .bottom-bar {
-    margin-top: 20px; display: flex; gap: 10px;
-  }
+  .bottom-bar { margin-top: 20px; display: flex; gap: 10px; }
   .bottom-bar button {
     padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;
   }
@@ -64,7 +62,7 @@
       <div class="period" id="periodText">有效期間:11507-11509</div>
       <div class="status" id="statusText">狀態</div>
       <div class="clock" id="clockText">--:--:--<span class="blink">●</span></div>
-      <div class="hint">此畫面時間為系統伺服器即時時間,警衛可請志工當場核對秒數跳動</div>
+      <div class="hint">此畫面時間為裝置即時時間,警衛可請志工當場核對秒數跳動</div>
     </div>
     <div class="bottom-bar">
       <button id="printBtn">列印貼紙</button>
@@ -73,7 +71,7 @@
   </div>
 
   <script type="module">
-    import { auth, db, doc, getDoc, onAuthStateChanged, signOut } from "./firebase-config.js";
+    import { db, doc, getDoc } from "./firebase-config.js";
 
     const groupColors = {
       "行政": "#34495e",
@@ -84,22 +82,24 @@
       "圖書": "#d35400",
     };
 
-    // 判斷民國年月格式 (例如 11507) 是否落在有效區間內
     function isWithinPeriod(validFrom, validTo) {
       const now = new Date();
       const rocYear = now.getFullYear() - 1911;
       const month = now.getMonth() + 1;
-      const current = rocYear * 100 + month; // 11507
+      const current = rocYear * 100 + month;
       return current >= Number(validFrom) && current <= Number(validTo);
     }
 
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        window.location.href = "index.html";
-        return;
-      }
+    const phone = sessionStorage.getItem("volunteerPhone");
+    if (!phone) {
+      window.location.href = "index.html";
+    } else {
+      loadCard(phone);
+    }
+
+    async function loadCard(phone) {
       try {
-        const snap = await getDoc(doc(db, "volunteers", user.uid));
+        const snap = await getDoc(doc(db, "volunteers", phone));
         if (!snap.exists()) {
           document.getElementById("loading").textContent = "查無志工資料,請洽行政室";
           return;
@@ -120,23 +120,25 @@
         document.getElementById("loading").style.display = "none";
         document.getElementById("cardWrap").style.display = "block";
 
-        // 即時時鐘,每秒更新,無法用截圖偽造
         setInterval(() => {
           const now = new Date();
           const t = now.toLocaleTimeString("zh-TW", { hour12: false });
           document.getElementById("clockText").innerHTML = `${t}<span class="blink">●</span>`;
         }, 1000);
 
-        // 30 分鐘自動登出,避免長時間截圖共用
-        setTimeout(() => signOut(auth), 30 * 60 * 1000);
+        // 30 分鐘沒操作自動登出
+        setTimeout(() => {
+          sessionStorage.removeItem("volunteerPhone");
+          window.location.href = "index.html";
+        }, 30 * 60 * 1000);
       } catch (err) {
         console.error(err);
         document.getElementById("loading").textContent = "讀取失敗,請重新登入";
       }
-    });
+    }
 
-    document.getElementById("logoutBtn").addEventListener("click", async () => {
-      await signOut(auth);
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      sessionStorage.removeItem("volunteerPhone");
       window.location.href = "index.html";
     });
 
