@@ -31,7 +31,12 @@
   .name { font-size: clamp(24px, 7vw, 28px); font-weight: bold; margin: 6px 0; }
   .group { font-size: clamp(16px, 5vw, 19px); margin-bottom: 14px; }
   .period { margin-bottom: 16px; }
-  .period .until { font-size: clamp(18px, 5.5vw, 21px); font-weight: bold; }
+  .period .until { font-size: clamp(13px, 4vw, 15px); opacity: 0.9; }
+  .period .until-date {
+    font-size: clamp(22px, 6.5vw, 26px); font-weight: bold;
+    color: #ffd700; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    margin: 2px 0;
+  }
   .period .since { font-size: clamp(11px, 3.5vw, 13px); opacity: 0.8; margin-top: 2px; }
   .status {
     display: inline-block; padding: 5px 16px; border-radius: 20px;
@@ -70,7 +75,8 @@
       <div class="group" id="groupText">組別志工</div>
       <div class="name" id="nameText">姓名</div>
       <div class="period" id="periodText">
-        <div class="until">有效期限至 --</div>
+        <div class="until">有效期限至</div>
+        <div class="until-date">--</div>
         <div class="since">(-- 起)</div>
       </div>
       <div class="status" id="statusText">狀態</div>
@@ -139,7 +145,8 @@
         document.getElementById("groupText").textContent = `${data.group || ""}志工`;
         document.getElementById("iconText").textContent = groupIcons[data.group] || "🙂";
         document.getElementById("periodText").innerHTML = `
-          <div class="until">有效期限至 ${formatROC(data.validTo)}</div>
+          <div class="until">有效期限至</div>
+          <div class="until-date">${formatROC(data.validTo)} 止</div>
           <div class="since">(${formatROC(data.validFrom)} 起)</div>
         `;
         document.getElementById("statusText").textContent = valid ? "✅ 可通行" : "⛔ 已失效/停權";
