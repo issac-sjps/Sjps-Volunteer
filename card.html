@@ -42,6 +42,10 @@
     display: inline-block; padding: 5px 16px; border-radius: 20px;
     background: rgba(255,255,255,0.25); font-size: clamp(13px, 4vw, 15px); margin-bottom: 18px;
   }
+  .contact-hint {
+    font-size: clamp(12px, 3.8vw, 14px); margin-bottom: 14px;
+    background: rgba(0,0,0,0.15); border-radius: 8px; padding: 8px 10px;
+  }
   .clock {
     font-size: clamp(20px, 6vw, 24px); font-weight: bold; letter-spacing: 1px;
     background: rgba(0,0,0,0.15); border-radius: 10px; padding: 10px;
@@ -70,6 +74,7 @@
         <div class="since">(-- 起)</div>
       </div>
       <div class="status" id="statusText">狀態</div>
+      <div class="contact-hint" id="contactHint" style="display:none;">請連絡相關主管單位恢復通行證</div>
       <div class="clock" id="clockText">--:--:--<span class="blink">●</span></div>
       <div class="hint">此畫面時間為裝置即時時間,警衛可請志工當場核對秒數跳動</div>
     </div>
@@ -140,6 +145,7 @@
           <div class="since">(${formatROC(data.validFrom)} 起)</div>
         `;
         document.getElementById("statusText").textContent = valid ? "✅ 可通行" : "⛔ 已失效/停權";
+        document.getElementById("contactHint").style.display = valid ? "none" : "block";
 
         const cardBox = document.getElementById("cardBox");
         cardBox.style.background = valid ? (groupColors[data.group] || "#34495e") : "#7f8c8d";
