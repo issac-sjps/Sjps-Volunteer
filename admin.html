@@ -21,6 +21,15 @@
   .del-btn { background: #c0392b; }
   .print-btn { background: #8e44ad; }
   .table-wrap { overflow-x: auto; }
+  .filter-bar { max-width: 1000px; margin: 0 auto 14px; text-align: center; }
+  .filter-bar button {
+    padding: 6px 14px; margin: 3px; border: 1px solid #ccc; border-radius: 20px;
+    background: #fff; cursor: pointer; font-size: 13px; color: #333;
+  }
+  .filter-bar button.active { background: #2f6f4f; color: #fff; border-color: #2f6f4f; }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { background: #3d5a73; }
+  th .arrow { font-size: 11px; margin-left: 3px; opacity: 0.8; }
   .new-tag { color: #2980b9; font-size: 12px; margin-top: 2px; }
   .lock-screen {
     position: fixed; inset: 0; background: #eef1f3;
@@ -52,22 +61,26 @@
     <div class="hint">新增志工:輸入姓名、手機號碼、民國生日、組別、有效期間後按「儲存」即可(手機號碼建立後不可修改,如果打錯要用「刪除」後重新新增)</div>
     <div class="toolbar">
       <button id="addBtn">新增志工</button>
+      <label style="font-size:13px; color:#333;">每人張數:
+        <input type="number" id="qtyInput" value="1" min="1" max="20" style="width:60px; display:inline-block;" />
+      </label>
       <button id="printSelectedBtn">列印所選</button>
       <button id="printAllBtn">列印全部</button>
       <button onclick="window.location.href='card.html'">返回識別證</button>
     </div>
+    <div class="filter-bar" id="filterBar"></div>
     <div class="table-wrap">
     <table>
       <thead>
         <tr>
           <th style="width:36px;"><input type="checkbox" id="checkAll" /></th>
-          <th>姓名</th>
-          <th>手機號碼(帳號)</th>
+          <th class="sortable" data-field="name">姓名<span class="arrow"></span></th>
+          <th class="sortable" data-field="phone">手機號碼(帳號)<span class="arrow"></span></th>
           <th>民國生日(密碼)</th>
-          <th>組別</th>
-          <th>起始 (民國年月)</th>
-          <th>結束 (民國年月)</th>
-          <th>狀態</th>
+          <th class="sortable" data-field="group">組別<span class="arrow"></span></th>
+          <th class="sortable" data-field="validFrom">起始 (民國年月)<span class="arrow"></span></th>
+          <th class="sortable" data-field="validTo">結束 (民國年月)<span class="arrow"></span></th>
+          <th class="sortable" data-field="status">狀態<span class="arrow"></span></th>
           <th>操作</th>
         </tr>
       </thead>
@@ -82,11 +95,16 @@
     const ADMIN_PASSWORD = "073411373";
     const groups = ["行政", "課輔", "導護", "醫護", "故事", "圖書"];
 
+    let allVolunteers = []; // { id, ...data }
+    let currentFilter = "全部";
+    let currentSort = { field: null, dir: 1 };
+
     document.getElementById("unlockBtn").addEventListener("click", () => {
       const input = document.getElementById("pwdInput").value;
       if (input === ADMIN_PASSWORD) {
         document.getElementById("lockScreen").style.display = "none";
         document.getElementById("mainContent").style.display = "block";
+        buildFilterBar();
         loadVolunteers();
       } else {
         document.getElementById("pwdErr").textContent = "密碼錯誤";
@@ -102,14 +120,67 @@
         .join("");
     }
 
+    function buildFilterBar() {
+      const bar = document.getElementById("filterBar");
+      const options = ["全部", ...groups];
+      bar.innerHTML = options
+        .map((g) => `<button class="filter-btn ${g === currentFilter ? "active" : ""}" data-group="${g}">${g}</button>`)
+        .join("");
+      bar.querySelectorAll(".filter-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          currentFilter = btn.dataset.group;
+          bar.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          renderTable();
+        });
+      });
+    }
+
+    document.querySelectorAll("th.sortable").forEach((th) => {
+      th.addEventListener("click", () => {
+        const field = th.dataset.field;
+        if (currentSort.field === field) {
+          currentSort.dir *= -1;
+        } else {
+          currentSort = { field, dir: 1 };
+        }
+        document.querySelectorAll("th.sortable .arrow").forEach((a) => (a.textContent = ""));
+        th.querySelector(".arrow").textContent = currentSort.dir === 1 ? "▲" : "▼";
+        renderTable();
+      });
+    });
+
     async function loadVolunteers() {
       const tbody = document.getElementById("tableBody");
-      tbody.innerHTML = "<tr><td colspan='8'>載入中...</td></tr>";
+      tbody.innerHTML = "<tr><td colspan='9'>載入中...</td></tr>";
       const snap = await getDocs(collection(db, "volunteers"));
-      tbody.innerHTML = "";
+      allVolunteers = [];
       snap.forEach((docSnap) => {
-        addRow(docSnap.id, docSnap.data(), false);
+        allVolunteers.push({ id: docSnap.id, ...docSnap.data() });
       });
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
+
+      let list = allVolunteers.slice();
+      if (currentFilter !== "全部") {
+        list = list.filter((v) => v.group === currentFilter);
+      }
+      if (currentSort.field) {
+        list.sort((a, b) => {
+          const av = (a[currentSort.field] || "").toString();
+          const bv = (b[currentSort.field] || "").toString();
+          return av.localeCompare(bv, "zh-Hant") * currentSort.dir;
+        });
+      }
+      if (!list.length) {
+        tbody.innerHTML = "<tr><td colspan='9'>目前沒有符合的志工資料</td></tr>";
+        return;
+      }
+      list.forEach((v) => addRow(v.id, v, false));
     }
 
     // isNew = true 代表尚未存進 Firestore 的新志工列,手機號碼欄位可編輯
@@ -188,7 +259,8 @@
       const printBtn = tr.querySelector(".print-btn");
       if (printBtn) {
         printBtn.addEventListener("click", () => {
-          window.location.href = `print.html?phones=${encodeURIComponent(phoneId)}`;
+          const qty = document.getElementById("qtyInput").value || 1;
+          window.location.href = `print.html?phones=${encodeURIComponent(phoneId)}&qty=${qty}`;
         });
       }
     }
@@ -211,19 +283,18 @@
         alert("請先勾選要列印的志工");
         return;
       }
-      window.location.href = `print.html?phones=${encodeURIComponent(phones.join(","))}`;
+      const qty = document.getElementById("qtyInput").value || 1;
+      window.location.href = `print.html?phones=${encodeURIComponent(phones.join(","))}&qty=${qty}`;
     });
 
     document.getElementById("printAllBtn").addEventListener("click", () => {
-      const phones = [];
-      document.querySelectorAll("#tableBody tr").forEach((tr) => {
-        if (tr.dataset.phoneId) phones.push(tr.dataset.phoneId);
-      });
+      const phones = allVolunteers.map((v) => v.id);
       if (!phones.length) {
         alert("目前沒有志工資料");
         return;
       }
-      window.location.href = `print.html?phones=${encodeURIComponent(phones.join(","))}`;
+      const qty = document.getElementById("qtyInput").value || 1;
+      window.location.href = `print.html?phones=${encodeURIComponent(phones.join(","))}&qty=${qty}`;
     });
   </script>
 </body>
