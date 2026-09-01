@@ -54,7 +54,7 @@
     print-color-adjust: exact;
   }
   .sticker .school { color: #333; letter-spacing: 0.5px; font-weight: bold; }
-  .sticker .icon { font-size: 28px; margin-top: 2px; }
+  .sticker .icon { margin-top: 2px; line-height: 1; }
   .sticker .group { color: #444; }
   .sticker .name { font-weight: bold; margin: 4px 0; color: #222; }
 
@@ -106,6 +106,7 @@
         <option value="6" selected>6張</option>
         <option value="8">8張</option>
         <option value="9">9張</option>
+        <option value="10">10張</option>
         <option value="12">12張(較小)</option>
       </select>
     </span>
@@ -128,10 +129,11 @@
 
     const DEFAULT_SETTINGS = {
       schoolYear: "115學年度",
-      fontSchool: 20,
-      fontYear: 13,
-      fontGroup: 14,
-      fontName: 26,
+      fontSchool: 24,
+      fontYear: 16,
+      fontGroup: 18,
+      fontIcon: 40,
+      fontName: 32,
     };
 
     // 每頁張數 -> 欄數/列數 對照表
@@ -140,6 +142,7 @@
       6: { cols: 2, rows: 3 },
       8: { cols: 2, rows: 4 },
       9: { cols: 3, rows: 3 },
+      10: { cols: 2, rows: 5 },
       12: { cols: 3, rows: 4 },
     };
 
@@ -229,9 +232,9 @@
           div.className = `sticker ${groupColorClass[data.group] || "bg-default"}`;
           div.innerHTML = `
             <div class="sticker-content">
-              <div class="school" style="font-size:${settings.fontSchool}px;">${SCHOOL_NAME}</div>
               <div class="year" style="font-size:${settings.fontYear}px; color:#666;">${settings.schoolYear}</div>
-              <div class="icon">${groupIcons[data.group] || "🙂"}</div>
+              <div class="school" style="font-size:${settings.fontSchool}px;">${SCHOOL_NAME}</div>
+              <div class="icon" style="font-size:${settings.fontIcon}px;">${groupIcons[data.group] || "🙂"}</div>
               <div class="group" style="font-size:${settings.fontGroup}px;">${data.group}志工</div>
               <div class="name" style="font-size:${settings.fontName}px;">${data.name}</div>
             </div>
