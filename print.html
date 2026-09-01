@@ -11,33 +11,52 @@
     padding: 10px 20px; font-size: 15px; border: none; border-radius: 6px;
     background: #2f6f4f; color: #fff; cursor: pointer; margin: 0 6px;
   }
-  .sheet {
-    max-width: 700px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+  .toolbar .print-options {
+    display: inline-flex; align-items: center; gap: 6px; margin: 0 10px;
+    font-size: 14px; color: #333; background: #fff; padding: 6px 10px;
+    border-radius: 6px; border: 1px solid #ccc; vertical-align: middle;
   }
+  .toolbar .print-options input,
+  .toolbar .print-options select { padding: 4px; font-size: 14px; }
+  .toolbar .print-options input[type="number"] { width: 55px; }
+  @page { size: A4; margin: 0; }
+
+  .print-page {
+    width: 210mm;
+    height: 297mm;
+    box-sizing: border-box;
+    margin: 0 auto 20px;
+    background: #fff;
+    display: grid;
+    box-shadow: 0 0 6px rgba(0,0,0,0.15);
+  }
+  @media print {
+    .print-page {
+      margin: 0;
+      box-shadow: none;
+      page-break-after: always;
+    }
+    .print-page:last-child { page-break-after: auto; }
+  }
+
   .sticker {
     position: relative;
     border: 1px solid #999;
-    border-radius: 10px;
-    padding: 14px;
     background-size: cover;
     background-position: center;
     text-align: center;
     overflow: hidden;
-    aspect-ratio: 16 / 8;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .sticker .school { font-size: 13px; color: #444; letter-spacing: 0.5px; }
+  .sticker .school { color: #333; letter-spacing: 0.5px; font-weight: bold; }
   .sticker .icon { font-size: 28px; margin-top: 2px; }
-  .sticker .group { font-size: 14px; color: #444; }
-  .sticker .name { font-size: 24px; font-weight: bold; margin: 4px 0; color: #222; }
+  .sticker .group { color: #444; }
+  .sticker .name { font-weight: bold; margin: 4px 0; color: #222; }
 
   /* 中間留白區,文字疊在插畫背景的空白處 */
   .sticker-content {
@@ -73,7 +92,6 @@
   @media print {
     .toolbar { display: none; }
     body { padding: 0; background: #fff; }
-    .sticker { border-width: 1.5px; border-style: solid; break-inside: avoid; }
   }
 </style>
 </head>
@@ -81,6 +99,20 @@
   <div class="toolbar">
     <button onclick="window.print()">列印</button>
     <button onclick="window.location.href='index.html'">返回編輯頁</button>
+    <span class="print-options">
+      每頁張數:
+      <select id="perPageSelect">
+        <option value="4">4張(較大)</option>
+        <option value="6" selected>6張</option>
+        <option value="8">8張</option>
+        <option value="9">9張</option>
+        <option value="12">12張(較小)</option>
+      </select>
+    </span>
+    <span class="print-options">
+      邊界(mm):
+      <input type="number" id="marginInput" value="5" min="0" max="20" />
+    </span>
   </div>
   <div id="content">
     <div class="loading-box">
@@ -93,6 +125,23 @@
     import { db, doc, getDoc } from "./firebase-config.js";
 
     const SCHOOL_NAME = "高雄市左營區新莊國民小學";
+
+    const DEFAULT_SETTINGS = {
+      schoolYear: "115學年度",
+      fontSchool: 20,
+      fontYear: 13,
+      fontGroup: 14,
+      fontName: 26,
+    };
+
+    // 每頁張數 -> 欄數/列數 對照表
+    const PAGE_LAYOUTS = {
+      4: { cols: 1, rows: 4 },
+      6: { cols: 2, rows: 3 },
+      8: { cols: 2, rows: 4 },
+      9: { cols: 3, rows: 3 },
+      12: { cols: 3, rows: 4 },
+    };
 
     const groupIcons = {
       "行政": "🗂️", "課輔": "📖", "導護": "🚦",
@@ -108,14 +157,17 @@
     const idsParam = params.get("ids");
     const content = document.getElementById("content");
 
+    let cachedVolunteers = []; // 只抓一次資料,調整版面時重複使用
+    let settings = { ...DEFAULT_SETTINGS };
+
     if (!idsParam) {
       content.textContent = "沒有指定要列印的志工,請從編輯頁選擇後再進來";
     } else {
       const ids = idsParam.split(",").map((p) => p.trim()).filter(Boolean);
-      renderAll(ids);
+      init(ids);
     }
 
-    async function renderAll(ids) {
+    async function init(ids) {
       const total = ids.length;
       let done = 0;
 
@@ -125,40 +177,69 @@
       content.innerHTML = "";
       content.appendChild(loadingBox);
 
-      // 平行讀取所有資料(不用一個個排隊等),速度快很多
-      const results = await Promise.all(
-        ids.map(async (id) => {
-          const snap = await getDoc(doc(db, "volunteers", id));
-          done++;
-          const progressText = document.getElementById("progressText");
-          if (progressText) progressText.textContent = `正在讀取資料 (${done}/${total})...`;
-          return snap.exists() ? snap.data() : null;
-        })
-      );
+      // 設定與志工資料同時平行讀取
+      const [settingsResult, volunteerResults] = await Promise.all([
+        getDoc(doc(db, "settings", "config")).catch(() => null),
+        Promise.all(
+          ids.map(async (id) => {
+            const snap = await getDoc(doc(db, "volunteers", id));
+            done++;
+            const progressText = document.getElementById("progressText");
+            if (progressText) progressText.textContent = `正在讀取資料 (${done}/${total})...`;
+            return snap.exists() ? snap.data() : null;
+          })
+        ),
+      ]);
 
-      const sheet = document.createElement("div");
-      sheet.className = "sheet";
+      if (settingsResult && settingsResult.exists()) {
+        settings = { ...settings, ...settingsResult.data() };
+      }
+      cachedVolunteers = volunteerResults.filter(Boolean);
 
-      results.forEach((data) => {
-        if (!data) return;
-        const div = document.createElement("div");
-        div.className = `sticker ${groupColorClass[data.group] || "bg-default"}`;
-        div.innerHTML = `
-          <div class="sticker-content">
-            <div class="school">${SCHOOL_NAME}</div>
-            <div class="icon">${groupIcons[data.group] || "🙂"}</div>
-            <div class="group">${data.group}志工</div>
-            <div class="name">${data.name}</div>
-          </div>
-        `;
-        sheet.appendChild(div);
-      });
+      if (!cachedVolunteers.length) {
+        content.textContent = "查無資料";
+        return;
+      }
+
+      renderPages();
+
+      document.getElementById("perPageSelect").addEventListener("change", renderPages);
+      document.getElementById("marginInput").addEventListener("change", renderPages);
+    }
+
+    function renderPages() {
+      const perPage = Number(document.getElementById("perPageSelect").value);
+      const marginMm = Number(document.getElementById("marginInput").value) || 0;
+      const layout = PAGE_LAYOUTS[perPage] || PAGE_LAYOUTS[6];
 
       content.innerHTML = "";
-      if (!sheet.children.length) {
-        content.textContent = "查無資料";
-      } else {
-        content.appendChild(sheet);
+
+      for (let i = 0; i < cachedVolunteers.length; i += perPage) {
+        const chunk = cachedVolunteers.slice(i, i + perPage);
+
+        const page = document.createElement("div");
+        page.className = "print-page";
+        page.style.padding = marginMm + "mm";
+        page.style.gap = "4mm";
+        page.style.gridTemplateColumns = `repeat(${layout.cols}, 1fr)`;
+        page.style.gridTemplateRows = `repeat(${layout.rows}, 1fr)`;
+
+        chunk.forEach((data) => {
+          const div = document.createElement("div");
+          div.className = `sticker ${groupColorClass[data.group] || "bg-default"}`;
+          div.innerHTML = `
+            <div class="sticker-content">
+              <div class="school" style="font-size:${settings.fontSchool}px;">${SCHOOL_NAME}</div>
+              <div class="year" style="font-size:${settings.fontYear}px; color:#666;">${settings.schoolYear}</div>
+              <div class="icon">${groupIcons[data.group] || "🙂"}</div>
+              <div class="group" style="font-size:${settings.fontGroup}px;">${data.group}志工</div>
+              <div class="name" style="font-size:${settings.fontName}px;">${data.name}</div>
+            </div>
+          `;
+          page.appendChild(div);
+        });
+
+        content.appendChild(page);
       }
     }
   </script>
