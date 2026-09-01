@@ -116,6 +116,11 @@
         <span class="settings-desc">px,例如「行政志工」四個字</span>
       </div>
       <div class="settings-row">
+        <label>組別圖示大小</label>
+        <input type="number" id="setFontIcon" min="16" max="60" />
+        <span class="settings-desc">px,例如 📖 這個符號的大小</span>
+      </div>
+      <div class="settings-row">
         <label>姓名字級</label>
         <input type="number" id="setFontName" min="12" max="50" />
         <span class="settings-desc">px,姓名通常要最大最清楚</span>
@@ -150,10 +155,11 @@
 
     const DEFAULT_SETTINGS = {
       schoolYear: "115學年度",
-      fontSchool: 20,
-      fontYear: 13,
-      fontGroup: 14,
-      fontName: 26,
+      fontSchool: 24,
+      fontYear: 16,
+      fontGroup: 18,
+      fontIcon: 40,
+      fontName: 32,
     };
 
     let allVolunteers = []; // { id, name, group }
@@ -192,6 +198,7 @@
       document.getElementById("setFontSchool").value = settings.fontSchool;
       document.getElementById("setFontYear").value = settings.fontYear;
       document.getElementById("setFontGroup").value = settings.fontGroup;
+      document.getElementById("setFontIcon").value = settings.fontIcon;
       document.getElementById("setFontName").value = settings.fontName;
     }
 
@@ -206,6 +213,7 @@
           fontSchool: Number(document.getElementById("setFontSchool").value) || DEFAULT_SETTINGS.fontSchool,
           fontYear: Number(document.getElementById("setFontYear").value) || DEFAULT_SETTINGS.fontYear,
           fontGroup: Number(document.getElementById("setFontGroup").value) || DEFAULT_SETTINGS.fontGroup,
+          fontIcon: Number(document.getElementById("setFontIcon").value) || DEFAULT_SETTINGS.fontIcon,
           fontName: Number(document.getElementById("setFontName").value) || DEFAULT_SETTINGS.fontName,
         };
         await setDoc(doc(db, "settings", "config"), payload, { merge: true });
