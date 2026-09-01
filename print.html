@@ -19,11 +19,13 @@
     gap: 12px;
   }
   .sticker {
-    border: 1px dashed #999;
+    position: relative;
+    border: 1px solid #999;
     border-radius: 10px;
     padding: 14px;
     background: #fff;
     text-align: center;
+    overflow: hidden;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -32,53 +34,45 @@
   .sticker .name { font-size: 22px; font-weight: bold; margin: 4px 0; }
   .sticker .period { font-size: 12px; color: #777; }
 
-  /* 各組別淺色底色 + 花紋（SVG 浮水印，淡淡的不影響閱讀） */
-  .sticker.bg-admin {
-    background-color: #eaf1ff; border-color: #a9c2ea;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='6' y='30' font-size='20' fill='%23c3d6f5'%3E%F0%9F%97%82%EF%B8%8F%3C/text%3E%3C/svg%3E");
-  }
-  .sticker.bg-tutor {
-    background-color: #fff6e0; border-color: #e6cf8a;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='6' y='30' font-size='20' fill='%23f0dfa0'%3E%F0%9F%93%96%3C/text%3E%3C/svg%3E");
-  }
-  .sticker.bg-guard {
-    background-color: #ffe9e6; border-color: #e6a89f;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='6' y='30' font-size='20' fill='%23f0c2ba'%3E%F0%9F%9A%A6%3C/text%3E%3C/svg%3E");
-  }
-  .sticker.bg-medical {
-    background-color: #e8fbf0; border-color: #9fd6b5;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='6' y='30' font-size='20' fill='%23b9e8c9'%3E%F0%9F%A9%BA%3C/text%3E%3C/svg%3E");
-  }
-  .sticker.bg-story {
-    background-color: #f3e9ff; border-color: #c7a8e8;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='6' y='30' font-size='20' fill='%23dcc4f2'%3E%F0%9F%A6%89%3C/text%3E%3C/svg%3E");
-  }
-  .sticker.bg-library {
-    background-color: #e6f7ff; border-color: #9fcfe0;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='6' y='30' font-size='20' fill='%23b3e0f0'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E");
-  }
-  .sticker.bg-default {
-    background-color: #f5f5f5; border-color: #ccc;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='6' y='30' font-size='20' fill='%23dddddd'%3E%F0%9F%8F%AB%3C/text%3E%3C/svg%3E");
-  }
-  .sticker[class*="bg-"] {
-    background-repeat: repeat;
-    background-size: 44px 44px;
-  }
-  /* icon/name/period 疊在花紋上方，加白底提升可讀性 */
-  .sticker .icon,
-  .sticker .group,
-  .sticker .name,
-  .sticker .period {
+  /* 歐式花紋（角落裝飾）+ 淺色底，中間留白給文字/圖示 */
+  .sticker-content {
     position: relative;
     z-index: 1;
+    background: rgba(255,255,255,0.9);
+    border-radius: 8px;
+    padding: 6px 4px;
+    margin: 6px;
   }
-  .sticker .name {
-    display: inline-block;
-    padding: 1px 8px;
-    border-radius: 6px;
-    background: rgba(255,255,255,0.75);
+  .sticker::before,
+  .sticker::after {
+    content: "";
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background-repeat: no-repeat;
+    background-size: contain;
+    opacity: 0.9;
+    z-index: 0;
   }
+  .sticker::before { top: 4px; left: 4px; }
+  .sticker::after  { bottom: 4px; right: 4px; transform: rotate(180deg); }
+
+  /* 共用歐式捲草花紋 SVG（角落裝飾），各組別只換顏色 */
+  .sticker.bg-admin::before,   .sticker.bg-admin::after   { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%237ea3e0' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 40 C 4 18, 18 4, 40 4'/%3E%3Cpath d='M40 4 C 55 4, 62 10, 60 18 C 58 25, 48 24, 48 17 C 48 13, 52 11, 55 13'/%3E%3Cpath d='M4 40 C 4 55, 10 62, 18 60 C 25 58, 24 48, 17 48 C 13 48, 11 52, 13 55'/%3E%3Cpath d='M20 20 C 24 14, 30 14, 32 20 C 30 24, 24 24, 20 20 Z' fill='%237ea3e0' stroke='none' opacity='0.85'/%3E%3Cpath d='M30 8 C 33 4, 37 4, 38 9 C 36 12, 32 12, 30 8 Z' fill='%237ea3e0' stroke='none' opacity='0.7'/%3E%3Cpath d='M8 30 C 4 33, 4 37, 9 38 C 12 36, 12 32, 8 30 Z' fill='%237ea3e0' stroke='none' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"); }
+  .sticker.bg-tutor::before,   .sticker.bg-tutor::after   { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23d8b458' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 40 C 4 18, 18 4, 40 4'/%3E%3Cpath d='M40 4 C 55 4, 62 10, 60 18 C 58 25, 48 24, 48 17 C 48 13, 52 11, 55 13'/%3E%3Cpath d='M4 40 C 4 55, 10 62, 18 60 C 25 58, 24 48, 17 48 C 13 48, 11 52, 13 55'/%3E%3Cpath d='M20 20 C 24 14, 30 14, 32 20 C 30 24, 24 24, 20 20 Z' fill='%23d8b458' stroke='none' opacity='0.85'/%3E%3Cpath d='M30 8 C 33 4, 37 4, 38 9 C 36 12, 32 12, 30 8 Z' fill='%23d8b458' stroke='none' opacity='0.7'/%3E%3Cpath d='M8 30 C 4 33, 4 37, 9 38 C 12 36, 12 32, 8 30 Z' fill='%23d8b458' stroke='none' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"); }
+  .sticker.bg-guard::before,   .sticker.bg-guard::after   { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23d98c7e' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 40 C 4 18, 18 4, 40 4'/%3E%3Cpath d='M40 4 C 55 4, 62 10, 60 18 C 58 25, 48 24, 48 17 C 48 13, 52 11, 55 13'/%3E%3Cpath d='M4 40 C 4 55, 10 62, 18 60 C 25 58, 24 48, 17 48 C 13 48, 11 52, 13 55'/%3E%3Cpath d='M20 20 C 24 14, 30 14, 32 20 C 30 24, 24 24, 20 20 Z' fill='%23d98c7e' stroke='none' opacity='0.85'/%3E%3Cpath d='M30 8 C 33 4, 37 4, 38 9 C 36 12, 32 12, 30 8 Z' fill='%23d98c7e' stroke='none' opacity='0.7'/%3E%3Cpath d='M8 30 C 4 33, 4 37, 9 38 C 12 36, 12 32, 8 30 Z' fill='%23d98c7e' stroke='none' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"); }
+  .sticker.bg-medical::before, .sticker.bg-medical::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%2374c493' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 40 C 4 18, 18 4, 40 4'/%3E%3Cpath d='M40 4 C 55 4, 62 10, 60 18 C 58 25, 48 24, 48 17 C 48 13, 52 11, 55 13'/%3E%3Cpath d='M4 40 C 4 55, 10 62, 18 60 C 25 58, 24 48, 17 48 C 13 48, 11 52, 13 55'/%3E%3Cpath d='M20 20 C 24 14, 30 14, 32 20 C 30 24, 24 24, 20 20 Z' fill='%2374c493' stroke='none' opacity='0.85'/%3E%3Cpath d='M30 8 C 33 4, 37 4, 38 9 C 36 12, 32 12, 30 8 Z' fill='%2374c493' stroke='none' opacity='0.7'/%3E%3Cpath d='M8 30 C 4 33, 4 37, 9 38 C 12 36, 12 32, 8 30 Z' fill='%2374c493' stroke='none' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"); }
+  .sticker.bg-story::before,   .sticker.bg-story::after   { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23b184d9' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 40 C 4 18, 18 4, 40 4'/%3E%3Cpath d='M40 4 C 55 4, 62 10, 60 18 C 58 25, 48 24, 48 17 C 48 13, 52 11, 55 13'/%3E%3Cpath d='M4 40 C 4 55, 10 62, 18 60 C 25 58, 24 48, 17 48 C 13 48, 11 52, 13 55'/%3E%3Cpath d='M20 20 C 24 14, 30 14, 32 20 C 30 24, 24 24, 20 20 Z' fill='%23b184d9' stroke='none' opacity='0.85'/%3E%3Cpath d='M30 8 C 33 4, 37 4, 38 9 C 36 12, 32 12, 30 8 Z' fill='%23b184d9' stroke='none' opacity='0.7'/%3E%3Cpath d='M8 30 C 4 33, 4 37, 9 38 C 12 36, 12 32, 8 30 Z' fill='%23b184d9' stroke='none' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"); }
+  .sticker.bg-library::before, .sticker.bg-library::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%237ec3d9' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 40 C 4 18, 18 4, 40 4'/%3E%3Cpath d='M40 4 C 55 4, 62 10, 60 18 C 58 25, 48 24, 48 17 C 48 13, 52 11, 55 13'/%3E%3Cpath d='M4 40 C 4 55, 10 62, 18 60 C 25 58, 24 48, 17 48 C 13 48, 11 52, 13 55'/%3E%3Cpath d='M20 20 C 24 14, 30 14, 32 20 C 30 24, 24 24, 20 20 Z' fill='%237ec3d9' stroke='none' opacity='0.85'/%3E%3Cpath d='M30 8 C 33 4, 37 4, 38 9 C 36 12, 32 12, 30 8 Z' fill='%237ec3d9' stroke='none' opacity='0.7'/%3E%3Cpath d='M8 30 C 4 33, 4 37, 9 38 C 12 36, 12 32, 8 30 Z' fill='%237ec3d9' stroke='none' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"); }
+  .sticker.bg-default::before, .sticker.bg-default::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23bbbbbb' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 40 C 4 18, 18 4, 40 4'/%3E%3Cpath d='M40 4 C 55 4, 62 10, 60 18 C 58 25, 48 24, 48 17 C 48 13, 52 11, 55 13'/%3E%3Cpath d='M4 40 C 4 55, 10 62, 18 60 C 25 58, 24 48, 17 48 C 13 48, 11 52, 13 55'/%3E%3Cpath d='M20 20 C 24 14, 30 14, 32 20 C 30 24, 24 24, 20 20 Z' fill='%23bbbbbb' stroke='none' opacity='0.85'/%3E%3Cpath d='M30 8 C 33 4, 37 4, 38 9 C 36 12, 32 12, 30 8 Z' fill='%23bbbbbb' stroke='none' opacity='0.7'/%3E%3Cpath d='M8 30 C 4 33, 4 37, 9 38 C 12 36, 12 32, 8 30 Z' fill='%23bbbbbb' stroke='none' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"); }
+
+  .sticker.bg-admin   { background-color: #f3f7ff; border-color: #a9c2ea; }
+  .sticker.bg-tutor    { background-color: #fffaee; border-color: #e6cf8a; }
+  .sticker.bg-guard    { background-color: #fff1ef; border-color: #e6a89f; }
+  .sticker.bg-medical  { background-color: #f0fbf5; border-color: #9fd6b5; }
+  .sticker.bg-story    { background-color: #f8f2ff; border-color: #c7a8e8; }
+  .sticker.bg-library  { background-color: #f0faff; border-color: #9fcfe0; }
+  .sticker.bg-default  { background-color: #f7f7f7; border-color: #ccc; }
 
   @media print {
     .toolbar { display: none; }
@@ -139,10 +133,12 @@
           const div = document.createElement("div");
           div.className = `sticker ${groupColorClass[data.group] || "bg-default"}`;
           div.innerHTML = `
-            <div class="icon">${groupIcons[data.group] || "🙂"}</div>
-            <div class="group">${data.group}志工</div>
-            <div class="name">${data.name}</div>
-            <div class="period">${data.validFrom}-${data.validTo}</div>
+            <div class="sticker-content">
+              <div class="icon">${groupIcons[data.group] || "🙂"}</div>
+              <div class="group">${data.group}志工</div>
+              <div class="name">${data.name}</div>
+              <div class="period">${data.validFrom}-${data.validTo}</div>
+            </div>
           `;
           sheet.appendChild(div);
         }
