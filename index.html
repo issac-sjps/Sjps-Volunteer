@@ -27,6 +27,30 @@
   }
   .filter-bar button.active { background: #2f6f4f; color: #fff; border-color: #2f6f4f; }
   .toolbar .settings-btn { background: #7d6608; }
+  .toolbar .import-btn { background: #8e44ad; }
+  .import-panel {
+    max-width: 640px; margin: 0 auto 20px; background: #fff;
+    border: 1px solid #ddd; border-radius: 8px; padding: 16px 20px;
+  }
+  .import-panel h3 { margin: 0 0 6px; font-size: 15px; color: #234; }
+  .import-panel .sub { font-size: 12px; color: #999; margin-bottom: 14px; }
+  .import-block {
+    border-top: 1px dashed #ddd; padding-top: 12px; margin-top: 12px;
+  }
+  .import-block:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+  .import-block h4 { margin: 0 0 8px; font-size: 14px; color: #333; }
+  .import-block p { margin: 0 0 10px; font-size: 12.5px; color: #888; }
+  .import-block button, .import-block input[type="file"] {
+    font-size: 13px;
+  }
+  .import-block button {
+    background: #2980b9; color: #fff; border: none; padding: 7px 14px;
+    border-radius: 6px; cursor: pointer; margin-right: 8px;
+  }
+  .import-mode-row { display: flex; align-items: center; gap: 16px; margin: 10px 0; font-size: 13px; }
+  .import-mode-row label { display: flex; align-items: center; gap: 4px; color: #444; }
+  .import-mode-row input[type="radio"] { width: auto; }
+  #importRunBtn { background: #c0392b; }
   .settings-panel {
     max-width: 640px; margin: 0 auto 20px; background: #fff;
     border: 1px solid #ddd; border-radius: 8px; padding: 16px 20px;
@@ -92,6 +116,35 @@
       <button id="printSelectedBtn">列印所選</button>
       <button id="printAllBtn">列印全部</button>
       <button id="toggleSettingsBtn" class="settings-btn">卡片設定</button>
+      <button id="toggleImportBtn" class="import-btn">名單匯入/匯出</button>
+    </div>
+    <div class="import-panel" id="importPanel" style="display:none;">
+      <h3>名單匯入 / 匯出(CSV 檔,Excel 可以直接開)</h3>
+      <div class="sub">CSV 欄位順序固定是:姓名,組別。組別要填「行政、課輔、導護、醫護、故事、圖書」其中一個。</div>
+
+      <div class="import-block">
+        <h4>① 下載空白範本</h4>
+        <p>給老師的空白表格,照著填姓名和組別就好。</p>
+        <button id="downloadTemplateBtn">下載空白範本.csv</button>
+      </div>
+
+      <div class="import-block">
+        <h4>② 匯出目前名單</h4>
+        <p>把資料庫目前所有志工存成 CSV,可以備份或給其他人。</p>
+        <button id="exportCsvBtn">匯出目前名單.csv</button>
+      </div>
+
+      <div class="import-block">
+        <h4>③ 匯入 CSV</h4>
+        <p>選一個填好的 CSV 檔案,再選擇匯入方式。</p>
+        <input type="file" id="importFileInput" accept=".csv" />
+        <div class="import-mode-row">
+          <label><input type="radio" name="importMode" value="append" checked /> 新增(保留原有名單,把新名單加進去)</label>
+          <label><input type="radio" name="importMode" value="overwrite" /> 覆蓋(先清空,再匯入這份名單)</label>
+        </div>
+        <button id="importRunBtn">開始匯入</button>
+        <div id="importResult" style="font-size:13px; color:#c0392b; margin-top:8px;"></div>
+      </div>
     </div>
     <div class="settings-panel" id="settingsPanel" style="display:none;">
       <h3>卡片設定(每年可以來這裡修改學年度)</h3>
@@ -224,6 +277,167 @@
       } finally {
         btn.disabled = false;
         btn.textContent = originalText;
+      }
+    });
+
+    document.getElementById("toggleImportBtn").addEventListener("click", () => {
+      const panel = document.getElementById("importPanel");
+      panel.style.display = panel.style.display === "none" ? "block" : "none";
+    });
+
+    // 產生 CSV 檔案並觸發下載(加上 BOM,確保 Excel 開啟中文不會亂碼)
+    function downloadCsv(filename, rows) {
+      const csvContent = rows.map((row) => row.map(csvEscape).join(",")).join("\r\n");
+      const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function csvEscape(value) {
+      const str = String(value ?? "");
+      if (str.includes(",") || str.includes("\"") || str.includes("\n")) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    }
+
+    document.getElementById("downloadTemplateBtn").addEventListener("click", () => {
+      downloadCsv("志工名單_空白範本.csv", [
+        ["姓名", "組別"],
+        ["王大明", "行政"],
+        ["李小華", "課輔"],
+      ]);
+    });
+
+    document.getElementById("exportCsvBtn").addEventListener("click", () => {
+      if (!allVolunteers.length) {
+        alert("目前沒有資料可以匯出");
+        return;
+      }
+      const rows = [["姓名", "組別"], ...allVolunteers.map((v) => [v.name, v.group])];
+      downloadCsv("志工名單_匯出.csv", rows);
+    });
+
+    // 簡單 CSV 解析(支援用引號包住含逗號的欄位)
+    function parseCsv(text) {
+      const lines = text.replace(/^\uFEFF/, "").split(/\r\n|\n|\r/).filter((l) => l.trim() !== "");
+      return lines.map((line) => {
+        const cells = [];
+        let cur = "";
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (inQuotes) {
+            if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+            else if (ch === '"') { inQuotes = false; }
+            else { cur += ch; }
+          } else {
+            if (ch === '"') inQuotes = true;
+            else if (ch === ",") { cells.push(cur); cur = ""; }
+            else cur += ch;
+          }
+        }
+        cells.push(cur);
+        return cells.map((c) => c.trim());
+      });
+    }
+
+    document.getElementById("importRunBtn").addEventListener("click", async () => {
+      const fileInput = document.getElementById("importFileInput");
+      const resultBox = document.getElementById("importResult");
+      resultBox.style.color = "#c0392b";
+      resultBox.textContent = "";
+
+      const file = fileInput.files[0];
+      if (!file) {
+        resultBox.textContent = "請先選擇要匯入的 CSV 檔案";
+        return;
+      }
+
+      const mode = document.querySelector('input[name="importMode"]:checked').value;
+      if (mode === "overwrite") {
+        if (!confirm("覆蓋模式會先清空目前所有志工資料,再匯入這份名單,確定要繼續嗎?此動作無法復原!")) {
+          return;
+        }
+      }
+
+      const runBtn = document.getElementById("importRunBtn");
+      const originalText = runBtn.textContent;
+      runBtn.disabled = true;
+      runBtn.textContent = "匯入中...請稍候";
+
+      try {
+        const text = await file.text();
+        const rows = parseCsv(text);
+        if (!rows.length) {
+          resultBox.textContent = "檔案是空的,請確認內容";
+          return;
+        }
+
+        // 判斷第一列是不是標題列(姓名/組別),是的話跳過
+        let dataRows = rows;
+        if (rows[0][0] === "姓名") {
+          dataRows = rows.slice(1);
+        }
+
+        const parsedEntries = [];
+        let unknownGroupCount = 0;
+        let emptyNameCount = 0;
+
+        dataRows.forEach((cols) => {
+          const name = (cols[0] || "").trim();
+          let group = (cols[1] || "").trim();
+          if (!name) { emptyNameCount++; return; }
+          if (!groups.includes(group)) {
+            unknownGroupCount++;
+            group = groups[0]; // 組別不明,先預設第一個組別,老師之後可在表格再改
+          }
+          parsedEntries.push({ name, group });
+        });
+
+        if (!parsedEntries.length) {
+          resultBox.textContent = "沒有解析到任何有效資料,請確認 CSV 格式是「姓名,組別」";
+          return;
+        }
+
+        // 覆蓋模式:先把現有資料全部刪除
+        if (mode === "overwrite" && allVolunteers.length) {
+          await Promise.all(allVolunteers.map((v) => deleteDoc(doc(db, "volunteers", v.id)).catch(() => {})));
+        }
+
+        // 寫入新資料(平行處理,加快速度)
+        let successCount = 0;
+        let failCount = 0;
+        await Promise.all(
+          parsedEntries.map((entry) => {
+            const docId = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+            return setDoc(doc(db, "volunteers", docId), entry)
+              .then(() => { successCount++; })
+              .catch(() => { failCount++; });
+          })
+        );
+
+        let msg = `匯入完成:成功 ${successCount} 筆`;
+        if (failCount) msg += `,失敗 ${failCount} 筆`;
+        if (emptyNameCount) msg += `,略過 ${emptyNameCount} 筆(姓名空白)`;
+        if (unknownGroupCount) msg += `,${unknownGroupCount} 筆組別無法辨識已預設為「${groups[0]}」,請至表格確認修正`;
+
+        resultBox.style.color = failCount || unknownGroupCount ? "#c0392b" : "#2f6f4f";
+        resultBox.textContent = msg;
+        fileInput.value = "";
+        loadVolunteers();
+      } catch (err) {
+        console.error(err);
+        resultBox.textContent = "匯入失敗:" + err.message;
+      } finally {
+        runBtn.disabled = false;
+        runBtn.textContent = originalText;
       }
     });
 
