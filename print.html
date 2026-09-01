@@ -32,14 +32,53 @@
   .sticker .name { font-size: 22px; font-weight: bold; margin: 4px 0; }
   .sticker .period { font-size: 12px; color: #777; }
 
-  /* 各組別淺色底色，讓卡片不再單調 */
-  .sticker.bg-admin  { background: #eaf1ff; border-color: #a9c2ea; }
-  .sticker.bg-tutor   { background: #fff6e0; border-color: #e6cf8a; }
-  .sticker.bg-guard   { background: #ffe9e6; border-color: #e6a89f; }
-  .sticker.bg-medical { background: #e8fbf0; border-color: #9fd6b5; }
-  .sticker.bg-story   { background: #f3e9ff; border-color: #c7a8e8; }
-  .sticker.bg-library { background: #e6f7ff; border-color: #9fcfe0; }
-  .sticker.bg-default { background: #f5f5f5; border-color: #ccc; }
+  /* 各組別淺色底色 + 花紋（SVG 浮水印，淡淡的不影響閱讀） */
+  .sticker.bg-admin {
+    background-color: #eaf1ff; border-color: #a9c2ea;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='6' y='30' font-size='20' fill='%23c3d6f5'%3E%F0%9F%97%82%EF%B8%8F%3C/text%3E%3C/svg%3E");
+  }
+  .sticker.bg-tutor {
+    background-color: #fff6e0; border-color: #e6cf8a;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='6' y='30' font-size='20' fill='%23f0dfa0'%3E%F0%9F%93%96%3C/text%3E%3C/svg%3E");
+  }
+  .sticker.bg-guard {
+    background-color: #ffe9e6; border-color: #e6a89f;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='6' y='30' font-size='20' fill='%23f0c2ba'%3E%F0%9F%9A%A6%3C/text%3E%3C/svg%3E");
+  }
+  .sticker.bg-medical {
+    background-color: #e8fbf0; border-color: #9fd6b5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='6' y='30' font-size='20' fill='%23b9e8c9'%3E%F0%9F%A9%BA%3C/text%3E%3C/svg%3E");
+  }
+  .sticker.bg-story {
+    background-color: #f3e9ff; border-color: #c7a8e8;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='6' y='30' font-size='20' fill='%23dcc4f2'%3E%F0%9F%A6%89%3C/text%3E%3C/svg%3E");
+  }
+  .sticker.bg-library {
+    background-color: #e6f7ff; border-color: #9fcfe0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='6' y='30' font-size='20' fill='%23b3e0f0'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E");
+  }
+  .sticker.bg-default {
+    background-color: #f5f5f5; border-color: #ccc;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='6' y='30' font-size='20' fill='%23dddddd'%3E%F0%9F%8F%AB%3C/text%3E%3C/svg%3E");
+  }
+  .sticker[class*="bg-"] {
+    background-repeat: repeat;
+    background-size: 44px 44px;
+  }
+  /* icon/name/period 疊在花紋上方，加白底提升可讀性 */
+  .sticker .icon,
+  .sticker .group,
+  .sticker .name,
+  .sticker .period {
+    position: relative;
+    z-index: 1;
+  }
+  .sticker .name {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.75);
+  }
 
   @media print {
     .toolbar { display: none; }
