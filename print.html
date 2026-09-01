@@ -11,9 +11,9 @@
     padding: 10px 20px; font-size: 15px; border: none; border-radius: 6px;
     background: #2f6f4f; color: #fff; cursor: pointer; margin: 0 6px;
   }
-  .person-block { max-width: 700px; margin: 0 auto 24px; }
-  .person-title { font-size: 14px; color: #555; margin-bottom: 8px; text-align: center; }
   .sheet {
+    max-width: 700px;
+    margin: 0 auto;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
@@ -29,20 +29,22 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .sticker .icon { font-size: 28px; }
+  .sticker .school { font-size: 12px; color: #666; letter-spacing: 0.5px; }
+  .sticker .icon { font-size: 26px; margin-top: 2px; }
   .sticker .group { font-size: 13px; color: #555; }
   .sticker .name { font-size: 22px; font-weight: bold; margin: 4px 0; }
-  .sticker .period { font-size: 12px; color: #777; }
 
-  /* 歐式花紋（角落裝飾）+ 淺色底，中間留白給文字/圖示 */
+  /* 中間文字區留白面板，蓋在花紋上方 */
   .sticker-content {
     position: relative;
     z-index: 1;
     background: rgba(255,255,255,0.9);
     border-radius: 8px;
-    padding: 6px 4px;
-    margin: 6px;
+    padding: 8px 4px;
+    margin: 4px;
   }
+
+  /* 角落歐式花紋裝飾 */
   .sticker::before,
   .sticker::after {
     content: "";
@@ -76,10 +78,8 @@
 
   @media print {
     .toolbar { display: none; }
-    .person-title { display: none; }
     body { padding: 0; background: #fff; }
     .sticker { border-width: 1.5px; border-style: solid; break-inside: avoid; }
-    .person-block { break-after: page; }
   }
 </style>
 </head>
@@ -93,59 +93,53 @@
   <script type="module">
     import { db, doc, getDoc } from "./firebase-config.js";
 
+    const SCHOOL_NAME = "高雄市左營區新莊國民小學";
+
     const groupIcons = {
       "行政": "🗂️", "課輔": "📖", "導護": "🚦",
       "醫護": "🩺", "故事": "🦉", "圖書": "📚",
     };
 
-    // 各組別對應的淺色底色 class
     const groupColorClass = {
       "行政": "bg-admin", "課輔": "bg-tutor", "導護": "bg-guard",
       "醫護": "bg-medical", "故事": "bg-story", "圖書": "bg-library",
     };
 
     const params = new URLSearchParams(window.location.search);
-    const phonesParam = params.get("phones");
-    const qty = Math.max(1, parseInt(params.get("qty") || "1", 10));
+    const idsParam = params.get("ids");
     const content = document.getElementById("content");
 
-    if (!phonesParam) {
+    if (!idsParam) {
       content.textContent = "沒有指定要列印的志工,請從編輯頁選擇後再進來";
     } else {
-      const phones = phonesParam.split(",").map((p) => p.trim()).filter(Boolean);
-      renderAll(phones);
+      const ids = idsParam.split(",").map((p) => p.trim()).filter(Boolean);
+      renderAll(ids);
     }
 
-    async function renderAll(phones) {
+    async function renderAll(ids) {
+      const sheet = document.createElement("div");
+      sheet.className = "sheet";
       content.innerHTML = "";
-      for (const phone of phones) {
-        const snap = await getDoc(doc(db, "volunteers", phone));
+      content.appendChild(sheet);
+
+      for (const id of ids) {
+        const snap = await getDoc(doc(db, "volunteers", id));
         if (!snap.exists()) continue;
         const data = snap.data();
 
-        const block = document.createElement("div");
-        block.className = "person-block";
-        block.innerHTML = `<div class="person-title">${data.name}(${phone})</div>`;
-
-        const sheet = document.createElement("div");
-        sheet.className = "sheet";
-        for (let i = 0; i < qty; i++) {
-          const div = document.createElement("div");
-          div.className = `sticker ${groupColorClass[data.group] || "bg-default"}`;
-          div.innerHTML = `
-            <div class="sticker-content">
-              <div class="icon">${groupIcons[data.group] || "🙂"}</div>
-              <div class="group">${data.group}志工</div>
-              <div class="name">${data.name}</div>
-              <div class="period">${data.validFrom}-${data.validTo}</div>
-            </div>
-          `;
-          sheet.appendChild(div);
-        }
-        block.appendChild(sheet);
-        content.appendChild(block);
+        const div = document.createElement("div");
+        div.className = `sticker ${groupColorClass[data.group] || "bg-default"}`;
+        div.innerHTML = `
+          <div class="sticker-content">
+            <div class="school">${SCHOOL_NAME}</div>
+            <div class="icon">${groupIcons[data.group] || "🙂"}</div>
+            <div class="group">${data.group}志工</div>
+            <div class="name">${data.name}</div>
+          </div>
+        `;
+        sheet.appendChild(div);
       }
-      if (!content.children.length) {
+      if (!sheet.children.length) {
         content.textContent = "查無資料";
       }
     }
