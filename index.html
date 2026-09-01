@@ -26,6 +26,22 @@
     background: #fff; cursor: pointer; font-size: 13px; color: #333;
   }
   .filter-bar button.active { background: #2f6f4f; color: #fff; border-color: #2f6f4f; }
+  .toolbar .settings-btn { background: #7d6608; }
+  .settings-panel {
+    max-width: 640px; margin: 0 auto 20px; background: #fff;
+    border: 1px solid #ddd; border-radius: 8px; padding: 16px 20px;
+  }
+  .settings-panel h3 { margin: 0 0 12px; font-size: 15px; color: #234; }
+  .settings-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px;
+  }
+  .settings-row label { flex: 0 0 150px; text-align: right; color: #444; }
+  .settings-row input { width: 100px; flex: none; }
+  .settings-row .settings-desc { flex: 1; color: #999; font-size: 12px; }
+  .settings-panel .save-settings-btn {
+    background: #2980b9; color: #fff; border: none; padding: 8px 18px;
+    border-radius: 6px; cursor: pointer; margin-top: 6px;
+  }
   .lock-screen {
     position: fixed; inset: 0; background: #eef1f3;
     display: flex; align-items: center; justify-content: center;
@@ -75,6 +91,38 @@
       <button id="saveAllBtn" class="save-all-btn">總儲存</button>
       <button id="printSelectedBtn">列印所選</button>
       <button id="printAllBtn">列印全部</button>
+      <button id="toggleSettingsBtn" class="settings-btn">卡片設定</button>
+    </div>
+    <div class="settings-panel" id="settingsPanel" style="display:none;">
+      <h3>卡片設定(每年可以來這裡修改學年度)</h3>
+      <div class="settings-row">
+        <label>學年度文字</label>
+        <input type="text" id="setYear" style="width:160px;" placeholder="例如:115學年度" />
+        <span class="settings-desc">會印在卡片上,每年開學前記得改一次</span>
+      </div>
+      <div class="settings-row">
+        <label>學校標題字級</label>
+        <input type="number" id="setFontSchool" min="10" max="40" />
+        <span class="settings-desc">px,越大字越大(校長要求的「標題大一點」)</span>
+      </div>
+      <div class="settings-row">
+        <label>學年度字級</label>
+        <input type="number" id="setFontYear" min="8" max="30" />
+        <span class="settings-desc">px</span>
+      </div>
+      <div class="settings-row">
+        <label>組別文字字級</label>
+        <input type="number" id="setFontGroup" min="8" max="30" />
+        <span class="settings-desc">px,例如「行政志工」四個字</span>
+      </div>
+      <div class="settings-row">
+        <label>姓名字級</label>
+        <input type="number" id="setFontName" min="12" max="50" />
+        <span class="settings-desc">px,姓名通常要最大最清楚</span>
+      </div>
+      <div style="text-align:center;">
+        <button class="save-settings-btn" id="saveSettingsBtn">儲存設定</button>
+      </div>
     </div>
     <div class="save-hint">改完姓名或組別後,記得按「總儲存」一次儲存全部</div>
     <div class="filter-bar" id="filterBar"></div>
@@ -82,6 +130,7 @@
     <table>
       <thead>
         <tr>
+          <th style="width:36px;">序號</th>
           <th style="width:36px;"><input type="checkbox" id="checkAll" /></th>
           <th>姓名</th>
           <th>組別</th>
@@ -94,10 +143,18 @@
   </div>
 
   <script type="module">
-    import { db, collection, getDocs, doc, setDoc, deleteDoc } from "./firebase-config.js";
+    import { db, collection, getDocs, doc, getDoc, setDoc, deleteDoc } from "./firebase-config.js";
 
     const ADMIN_PASSWORD = "073411373";
     const groups = ["行政", "課輔", "導護", "醫護", "故事", "圖書"];
+
+    const DEFAULT_SETTINGS = {
+      schoolYear: "115學年度",
+      fontSchool: 20,
+      fontYear: 13,
+      fontGroup: 14,
+      fontName: 26,
+    };
 
     let allVolunteers = []; // { id, name, group }
     let currentFilter = "全部";
@@ -109,12 +166,57 @@
         document.getElementById("mainContent").style.display = "block";
         buildFilterBar();
         loadVolunteers();
+        loadSettings();
       } else {
         document.getElementById("pwdErr").textContent = "密碼錯誤";
       }
     });
     document.getElementById("pwdInput").addEventListener("keydown", (e) => {
       if (e.key === "Enter") document.getElementById("unlockBtn").click();
+    });
+
+    document.getElementById("toggleSettingsBtn").addEventListener("click", () => {
+      const panel = document.getElementById("settingsPanel");
+      panel.style.display = panel.style.display === "none" ? "block" : "none";
+    });
+
+    async function loadSettings() {
+      let settings = { ...DEFAULT_SETTINGS };
+      try {
+        const snap = await getDoc(doc(db, "settings", "config"));
+        if (snap.exists()) settings = { ...settings, ...snap.data() };
+      } catch (err) {
+        console.error("讀取設定失敗,使用預設值", err);
+      }
+      document.getElementById("setYear").value = settings.schoolYear;
+      document.getElementById("setFontSchool").value = settings.fontSchool;
+      document.getElementById("setFontYear").value = settings.fontYear;
+      document.getElementById("setFontGroup").value = settings.fontGroup;
+      document.getElementById("setFontName").value = settings.fontName;
+    }
+
+    document.getElementById("saveSettingsBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("saveSettingsBtn");
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "儲存中...";
+      try {
+        const payload = {
+          schoolYear: document.getElementById("setYear").value.trim() || DEFAULT_SETTINGS.schoolYear,
+          fontSchool: Number(document.getElementById("setFontSchool").value) || DEFAULT_SETTINGS.fontSchool,
+          fontYear: Number(document.getElementById("setFontYear").value) || DEFAULT_SETTINGS.fontYear,
+          fontGroup: Number(document.getElementById("setFontGroup").value) || DEFAULT_SETTINGS.fontGroup,
+          fontName: Number(document.getElementById("setFontName").value) || DEFAULT_SETTINGS.fontName,
+        };
+        await setDoc(doc(db, "settings", "config"), payload, { merge: true });
+        alert("設定已儲存,下次列印會套用新設定");
+      } catch (err) {
+        console.error(err);
+        alert("設定儲存失敗:" + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
     });
 
     function groupOptions(selected) {
@@ -141,7 +243,7 @@
 
     async function loadVolunteers() {
       const tbody = document.getElementById("tableBody");
-      tbody.innerHTML = `<tr><td colspan="4"><div class="loading-box"><div class="spinner"></div><div>資料讀取中,請稍候...</div></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5"><div class="loading-box"><div class="spinner"></div><div>資料讀取中,請稍候...</div></div></td></tr>`;
       const snap = await getDocs(collection(db, "volunteers"));
       allVolunteers = [];
       snap.forEach((docSnap) => {
@@ -159,18 +261,19 @@
         list = list.filter((v) => v.group === currentFilter);
       }
       if (!list.length) {
-        tbody.innerHTML = "<tr><td colspan='4'>目前沒有符合的志工資料</td></tr>";
+        tbody.innerHTML = "<tr><td colspan='5'>目前沒有符合的志工資料</td></tr>";
         return;
       }
-      list.forEach((v) => addRow(v.id, v, false));
+      list.forEach((v, i) => addRow(v.id, v, false, i + 1));
     }
 
-    function addRow(id, data = {}, isNew = true) {
+    function addRow(id, data = {}, isNew = true, seq = null) {
       const tbody = document.getElementById("tableBody");
       const tr = document.createElement("tr");
       tr.dataset.id = id || "";
 
       tr.innerHTML = `
+        <td>${seq !== null ? seq : ""}</td>
         <td>${!isNew ? `<input type="checkbox" class="rowCheck" />` : ""}</td>
         <td><input type="text" class="nameInput" value="${data.name || ""}" placeholder="姓名" /></td>
         <td><select class="groupInput">${groupOptions(data.group)}</select></td>
