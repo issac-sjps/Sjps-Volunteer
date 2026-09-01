@@ -24,17 +24,28 @@
     padding: 14px;
     background: #fff;
     text-align: center;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   .sticker .icon { font-size: 28px; }
   .sticker .group { font-size: 13px; color: #555; }
   .sticker .name { font-size: 22px; font-weight: bold; margin: 4px 0; }
   .sticker .period { font-size: 12px; color: #777; }
 
+  /* 各組別淺色底色，讓卡片不再單調 */
+  .sticker.bg-admin  { background: #eaf1ff; border-color: #a9c2ea; }
+  .sticker.bg-tutor   { background: #fff6e0; border-color: #e6cf8a; }
+  .sticker.bg-guard   { background: #ffe9e6; border-color: #e6a89f; }
+  .sticker.bg-medical { background: #e8fbf0; border-color: #9fd6b5; }
+  .sticker.bg-story   { background: #f3e9ff; border-color: #c7a8e8; }
+  .sticker.bg-library { background: #e6f7ff; border-color: #9fcfe0; }
+  .sticker.bg-default { background: #f5f5f5; border-color: #ccc; }
+
   @media print {
     .toolbar { display: none; }
     .person-title { display: none; }
     body { padding: 0; background: #fff; }
-    .sticker { border: 1px solid #333; break-inside: avoid; }
+    .sticker { border-width: 1.5px; border-style: solid; break-inside: avoid; }
     .person-block { break-after: page; }
   }
 </style>
@@ -52,6 +63,12 @@
     const groupIcons = {
       "行政": "🗂️", "課輔": "📖", "導護": "🚦",
       "醫護": "🩺", "故事": "🦉", "圖書": "📚",
+    };
+
+    // 各組別對應的淺色底色 class
+    const groupColorClass = {
+      "行政": "bg-admin", "課輔": "bg-tutor", "導護": "bg-guard",
+      "醫護": "bg-medical", "故事": "bg-story", "圖書": "bg-library",
     };
 
     const params = new URLSearchParams(window.location.search);
@@ -81,7 +98,7 @@
         sheet.className = "sheet";
         for (let i = 0; i < qty; i++) {
           const div = document.createElement("div");
-          div.className = "sticker";
+          div.className = `sticker ${groupColorClass[data.group] || "bg-default"}`;
           div.innerHTML = `
             <div class="icon">${groupIcons[data.group] || "🙂"}</div>
             <div class="group">${data.group}志工</div>
