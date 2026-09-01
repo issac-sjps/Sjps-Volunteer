@@ -182,35 +182,52 @@
     });
 
     document.getElementById("saveAllBtn").addEventListener("click", async () => {
+      const saveBtn = document.getElementById("saveAllBtn");
       const rows = document.querySelectorAll("#tableBody tr");
+
+      // 進入儲存中狀態:按鈕變灰、文字改變、不能重複按
+      const originalText = saveBtn.textContent;
+      saveBtn.disabled = true;
+      saveBtn.textContent = "儲存中...請稍候";
+      saveBtn.style.opacity = "0.6";
+      saveBtn.style.cursor = "not-allowed";
+
       let successCount = 0;
       let failCount = 0;
 
-      for (const tr of rows) {
-        const nameInput = tr.querySelector(".nameInput");
-        const groupInput = tr.querySelector(".groupInput");
-        if (!nameInput || !groupInput) continue; // 空表格提示列,跳過
+      try {
+        for (const tr of rows) {
+          const nameInput = tr.querySelector(".nameInput");
+          const groupInput = tr.querySelector(".groupInput");
+          if (!nameInput || !groupInput) continue; // 空表格提示列,跳過
 
-        const name = nameInput.value.trim();
-        if (!name) continue; // 空白列(還沒填姓名)就不存,不當錯誤
+          const name = nameInput.value.trim();
+          if (!name) continue; // 空白列(還沒填姓名)就不存,不當錯誤
 
-        const payload = { name, group: groupInput.value };
-        try {
-          const docId = tr.dataset.id || `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-          await setDoc(doc(db, "volunteers", docId), payload);
-          successCount++;
-        } catch (err) {
-          console.error(err);
-          failCount++;
+          const payload = { name, group: groupInput.value };
+          try {
+            const docId = tr.dataset.id || `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+            await setDoc(doc(db, "volunteers", docId), payload);
+            successCount++;
+          } catch (err) {
+            console.error(err);
+            failCount++;
+          }
         }
-      }
 
-      if (failCount) {
-        alert(`儲存完成,成功 ${successCount} 筆,失敗 ${failCount} 筆`);
-      } else {
-        alert(`已儲存 ${successCount} 筆資料`);
+        if (failCount) {
+          alert(`儲存完成,成功 ${successCount} 筆,失敗 ${failCount} 筆`);
+        } else {
+          alert(`已儲存 ${successCount} 筆資料`);
+        }
+        loadVolunteers();
+      } finally {
+        // 還原按鈕狀態(loadVolunteers 會重畫表格,這裡是保險,避免例外時按鈕卡住)
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+        saveBtn.style.opacity = "1";
+        saveBtn.style.cursor = "pointer";
       }
-      loadVolunteers();
     });
 
     document.getElementById("checkAll").addEventListener("change", (e) => {
