@@ -148,18 +148,22 @@
       content.innerHTML = "";
       content.appendChild(loadingBox);
 
+      // 平行讀取所有資料(不用一個個排隊等),速度快很多
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          const snap = await getDoc(doc(db, "volunteers", id));
+          done++;
+          const progressText = document.getElementById("progressText");
+          if (progressText) progressText.textContent = `正在讀取資料 (${done}/${total})...`;
+          return snap.exists() ? snap.data() : null;
+        })
+      );
+
       const sheet = document.createElement("div");
       sheet.className = "sheet";
 
-      for (const id of ids) {
-        const snap = await getDoc(doc(db, "volunteers", id));
-        done++;
-        const progressText = document.getElementById("progressText");
-        if (progressText) progressText.textContent = `正在讀取資料 (${done}/${total})...`;
-
-        if (!snap.exists()) continue;
-        const data = snap.data();
-
+      results.forEach((data) => {
+        if (!data) return;
         const div = document.createElement("div");
         div.className = `sticker ${groupColorClass[data.group] || "bg-default"}`;
         div.innerHTML = `
@@ -171,7 +175,7 @@
           </div>
         `;
         sheet.appendChild(div);
-      }
+      });
 
       content.innerHTML = "";
       if (!sheet.children.length) {
