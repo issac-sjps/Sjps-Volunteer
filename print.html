@@ -23,57 +23,34 @@
     border: 1px solid #999;
     border-radius: 10px;
     padding: 14px;
-    background: #fff;
+    background-size: cover;
+    background-position: center;
     text-align: center;
     overflow: hidden;
+    aspect-ratio: 16 / 8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .sticker .school { font-size: 12px; color: #666; letter-spacing: 0.5px; }
-  .sticker .icon { font-size: 26px; margin-top: 2px; }
-  .sticker .group { font-size: 13px; color: #555; }
-  .sticker .name { font-size: 22px; font-weight: bold; margin: 4px 0; }
+  .sticker .school { font-size: 13px; color: #444; letter-spacing: 0.5px; }
+  .sticker .icon { font-size: 28px; margin-top: 2px; }
+  .sticker .group { font-size: 14px; color: #444; }
+  .sticker .name { font-size: 24px; font-weight: bold; margin: 4px 0; color: #222; }
 
-  /* 中間文字區留白面板，蓋在花紋上方 */
+  /* 中間留白區,文字疊在插畫背景的空白處 */
   .sticker-content {
     position: relative;
     z-index: 1;
-    background: rgba(255,255,255,0.9);
-    border-radius: 8px;
-    padding: 8px 4px;
-    margin: 4px;
   }
 
-  /* 角落歐式花紋裝飾 */
-  .sticker::before,
-  .sticker::after {
-    content: "";
-    position: absolute;
-    width: 60px;
-    height: 60px;
-    background-repeat: no-repeat;
-    background-size: contain;
-    opacity: 0.9;
-    z-index: 0;
-  }
-  .sticker::before { top: 4px; left: 4px; }
-  .sticker::after  { bottom: 4px; right: 4px; transform: rotate(180deg); }
-
-  /* 共用歐式捲草花紋 SVG（角落裝飾），各組別只換顏色 */
-  .sticker.bg-admin::before,   .sticker.bg-admin::after   { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%237ea3e0' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 40 C 4 18, 18 4, 40 4'/%3E%3Cpath d='M40 4 C 55 4, 62 10, 60 18 C 58 25, 48 24, 48 17 C 48 13, 52 11, 55 13'/%3E%3Cpath d='M4 40 C 4 55, 10 62, 18 60 C 25 58, 24 48, 17 48 C 13 48, 11 52, 13 55'/%3E%3Cpath d='M20 20 C 24 14, 30 14, 32 20 C 30 24, 24 24, 20 20 Z' fill='%237ea3e0' stroke='none' opacity='0.85'/%3E%3Cpath d='M30 8 C 33 4, 37 4, 38 9 C 36 12, 32 12, 30 8 Z' fill='%237ea3e0' stroke='none' opacity='0.7'/%3E%3Cpath d='M8 30 C 4 33, 4 37, 9 38 C 12 36, 12 32, 8 30 Z' fill='%237ea3e0' stroke='none' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"); }
-  .sticker.bg-tutor::before,   .sticker.bg-tutor::after   { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23d8b458' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 40 C 4 18, 18 4, 40 4'/%3E%3Cpath d='M40 4 C 55 4, 62 10, 60 18 C 58 25, 48 24, 48 17 C 48 13, 52 11, 55 13'/%3E%3Cpath d='M4 40 C 4 55, 10 62, 18 60 C 25 58, 24 48, 17 48 C 13 48, 11 52, 13 55'/%3E%3Cpath d='M20 20 C 24 14, 30 14, 32 20 C 30 24, 24 24, 20 20 Z' fill='%23d8b458' stroke='none' opacity='0.85'/%3E%3Cpath d='M30 8 C 33 4, 37 4, 38 9 C 36 12, 32 12, 30 8 Z' fill='%23d8b458' stroke='none' opacity='0.7'/%3E%3Cpath d='M8 30 C 4 33, 4 37, 9 38 C 12 36, 12 32, 8 30 Z' fill='%23d8b458' stroke='none' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"); }
-  .sticker.bg-guard::before,   .sticker.bg-guard::after   { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23d98c7e' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 40 C 4 18, 18 4, 40 4'/%3E%3Cpath d='M40 4 C 55 4, 62 10, 60 18 C 58 25, 48 24, 48 17 C 48 13, 52 11, 55 13'/%3E%3Cpath d='M4 40 C 4 55, 10 62, 18 60 C 25 58, 24 48, 17 48 C 13 48, 11 52, 13 55'/%3E%3Cpath d='M20 20 C 24 14, 30 14, 32 20 C 30 24, 24 24, 20 20 Z' fill='%23d98c7e' stroke='none' opacity='0.85'/%3E%3Cpath d='M30 8 C 33 4, 37 4, 38 9 C 36 12, 32 12, 30 8 Z' fill='%23d98c7e' stroke='none' opacity='0.7'/%3E%3Cpath d='M8 30 C 4 33, 4 37, 9 38 C 12 36, 12 32, 8 30 Z' fill='%23d98c7e' stroke='none' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"); }
-  .sticker.bg-medical::before, .sticker.bg-medical::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%2374c493' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 40 C 4 18, 18 4, 40 4'/%3E%3Cpath d='M40 4 C 55 4, 62 10, 60 18 C 58 25, 48 24, 48 17 C 48 13, 52 11, 55 13'/%3E%3Cpath d='M4 40 C 4 55, 10 62, 18 60 C 25 58, 24 48, 17 48 C 13 48, 11 52, 13 55'/%3E%3Cpath d='M20 20 C 24 14, 30 14, 32 20 C 30 24, 24 24, 20 20 Z' fill='%2374c493' stroke='none' opacity='0.85'/%3E%3Cpath d='M30 8 C 33 4, 37 4, 38 9 C 36 12, 32 12, 30 8 Z' fill='%2374c493' stroke='none' opacity='0.7'/%3E%3Cpath d='M8 30 C 4 33, 4 37, 9 38 C 12 36, 12 32, 8 30 Z' fill='%2374c493' stroke='none' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"); }
-  .sticker.bg-story::before,   .sticker.bg-story::after   { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23b184d9' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 40 C 4 18, 18 4, 40 4'/%3E%3Cpath d='M40 4 C 55 4, 62 10, 60 18 C 58 25, 48 24, 48 17 C 48 13, 52 11, 55 13'/%3E%3Cpath d='M4 40 C 4 55, 10 62, 18 60 C 25 58, 24 48, 17 48 C 13 48, 11 52, 13 55'/%3E%3Cpath d='M20 20 C 24 14, 30 14, 32 20 C 30 24, 24 24, 20 20 Z' fill='%23b184d9' stroke='none' opacity='0.85'/%3E%3Cpath d='M30 8 C 33 4, 37 4, 38 9 C 36 12, 32 12, 30 8 Z' fill='%23b184d9' stroke='none' opacity='0.7'/%3E%3Cpath d='M8 30 C 4 33, 4 37, 9 38 C 12 36, 12 32, 8 30 Z' fill='%23b184d9' stroke='none' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"); }
-  .sticker.bg-library::before, .sticker.bg-library::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%237ec3d9' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 40 C 4 18, 18 4, 40 4'/%3E%3Cpath d='M40 4 C 55 4, 62 10, 60 18 C 58 25, 48 24, 48 17 C 48 13, 52 11, 55 13'/%3E%3Cpath d='M4 40 C 4 55, 10 62, 18 60 C 25 58, 24 48, 17 48 C 13 48, 11 52, 13 55'/%3E%3Cpath d='M20 20 C 24 14, 30 14, 32 20 C 30 24, 24 24, 20 20 Z' fill='%237ec3d9' stroke='none' opacity='0.85'/%3E%3Cpath d='M30 8 C 33 4, 37 4, 38 9 C 36 12, 32 12, 30 8 Z' fill='%237ec3d9' stroke='none' opacity='0.7'/%3E%3Cpath d='M8 30 C 4 33, 4 37, 9 38 C 12 36, 12 32, 8 30 Z' fill='%237ec3d9' stroke='none' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"); }
-  .sticker.bg-default::before, .sticker.bg-default::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23bbbbbb' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 40 C 4 18, 18 4, 40 4'/%3E%3Cpath d='M40 4 C 55 4, 62 10, 60 18 C 58 25, 48 24, 48 17 C 48 13, 52 11, 55 13'/%3E%3Cpath d='M4 40 C 4 55, 10 62, 18 60 C 25 58, 24 48, 17 48 C 13 48, 11 52, 13 55'/%3E%3Cpath d='M20 20 C 24 14, 30 14, 32 20 C 30 24, 24 24, 20 20 Z' fill='%23bbbbbb' stroke='none' opacity='0.85'/%3E%3Cpath d='M30 8 C 33 4, 37 4, 38 9 C 36 12, 32 12, 30 8 Z' fill='%23bbbbbb' stroke='none' opacity='0.7'/%3E%3Cpath d='M8 30 C 4 33, 4 37, 9 38 C 12 36, 12 32, 8 30 Z' fill='%23bbbbbb' stroke='none' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E"); }
-
-  .sticker.bg-admin   { background-color: #f3f7ff; border-color: #a9c2ea; }
-  .sticker.bg-tutor    { background-color: #fffaee; border-color: #e6cf8a; }
-  .sticker.bg-guard    { background-color: #fff1ef; border-color: #e6a89f; }
-  .sticker.bg-medical  { background-color: #f0fbf5; border-color: #9fd6b5; }
-  .sticker.bg-story    { background-color: #f8f2ff; border-color: #c7a8e8; }
-  .sticker.bg-library  { background-color: #f0faff; border-color: #9fcfe0; }
+  .sticker.bg-admin   { background-image: url("images/bg-admin.jpg"); }
+  .sticker.bg-tutor    { background-image: url("images/bg-tutor.jpg"); }
+  .sticker.bg-guard    { background-image: url("images/bg-guard.jpg"); }
+  .sticker.bg-medical  { background-image: url("images/bg-medical.jpg"); }
+  .sticker.bg-story    { background-image: url("images/bg-story.jpg"); }
+  .sticker.bg-library  { background-image: url("images/bg-library.jpg"); }
   .sticker.bg-default  { background-color: #f7f7f7; border-color: #ccc; }
 
   .loading-box {
