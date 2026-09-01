@@ -3,96 +3,240 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>志工登入 - SJPS Volunteer</title>
+<title>志工資料管理</title>
 <style>
-  body {
-    font-family: "Microsoft JhengHei", sans-serif;
-    background: #f2f5f7;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    margin: 0;
+  body { font-family: "Microsoft JhengHei", sans-serif; background: #f2f5f7; margin: 0; padding: 20px; }
+  h1 { text-align: center; color: #234; font-size: 20px; }
+  .toolbar { text-align: center; margin-bottom: 16px; }
+  .toolbar button {
+    padding: 8px 16px; font-size: 14px; border: none; border-radius: 6px;
+    background: #2f6f4f; color: #fff; cursor: pointer; margin: 0 4px;
   }
-  .box {
-    background: #fff;
-    padding: 32px;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-    width: 320px;
+  table { width: 100%; max-width: 640px; margin: 0 auto; border-collapse: collapse; background: #fff; }
+  th, td { border: 1px solid #ddd; padding: 8px; font-size: 14px; text-align: center; vertical-align: middle; }
+  th { background: #34495e; color: #fff; }
+  input, select { width: 100%; padding: 6px 4px; font-size: 14px; box-sizing: border-box; }
+  .del-btn { margin: 2px; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; color: #fff; background: #c0392b; }
+  .toolbar .save-all-btn { background: #2980b9; font-weight: bold; }
+  .save-hint { text-align: center; font-size: 13px; color: #888; margin: -6px 0 14px; }
+  .table-wrap { overflow-x: auto; }
+  .filter-bar { max-width: 640px; margin: 0 auto 14px; text-align: center; }
+  .filter-bar button {
+    padding: 6px 14px; margin: 3px; border: 1px solid #ccc; border-radius: 20px;
+    background: #fff; cursor: pointer; font-size: 13px; color: #333;
   }
-  h1 { font-size: 20px; text-align: center; margin-bottom: 24px; color: #234; }
-  label { display: block; font-size: 14px; margin-bottom: 4px; color: #555; }
-  input {
-    width: 100%; padding: 10px; margin-bottom: 16px;
-    border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;
-    font-size: 15px;
+  .filter-bar button.active { background: #2f6f4f; color: #fff; border-color: #2f6f4f; }
+  .lock-screen {
+    position: fixed; inset: 0; background: #eef1f3;
+    display: flex; align-items: center; justify-content: center;
   }
-  button {
-    width: 100%; padding: 10px; background: #2f6f4f; color: #fff;
-    border: none; border-radius: 6px; font-size: 15px; cursor: pointer;
+  .lock-box {
+    background: #fff; padding: 32px; border-radius: 12px; width: 280px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1); text-align: center;
   }
-  button:hover { background: #245a3e; }
-  #adminBtn { background: #7f8c8d; margin-top: 4px; }
-  #adminBtn:hover { background: #6c7a7b; }
-  .msg { color: #c0392b; font-size: 13px; margin-top: 10px; text-align: center; min-height: 18px; }
-  .note { font-size: 12px; color: #888; margin-top: 16px; text-align: center; }
+  .lock-box input { width: 100%; padding: 10px; margin: 12px 0; box-sizing: border-box; font-size: 15px; }
+  .lock-box button { width: 100%; padding: 10px; background: #2f6f4f; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+  .err { color: #c0392b; font-size: 13px; min-height: 18px; }
 </style>
 </head>
 <body>
-  <div class="box">
-    <h1>志工識別證系統登入</h1>
-    <label for="phone">手機號碼</label>
-    <input type="text" id="phone" placeholder="請輸入手機號碼" inputmode="numeric" autocomplete="off" />
-    <label for="birthday">民國生日(例如 791130)</label>
-    <input type="text" id="birthday" placeholder="請輸入民國生日 6 碼" inputmode="numeric" autocomplete="off" />
-    <button id="loginBtn">登入</button>
-    <div class="msg" id="msg"></div>
-    <div class="note">手機號碼與生日皆對正確,才能查看識別證</div>
-    <button id="adminBtn" type="button">管理員登入</button>
+
+  <div class="lock-screen" id="lockScreen">
+    <div class="lock-box">
+      <div>請輸入管理密碼</div>
+      <input type="password" id="pwdInput" placeholder="密碼" />
+      <button id="unlockBtn">確認</button>
+      <div class="err" id="pwdErr"></div>
+    </div>
+  </div>
+
+  <div id="mainContent" style="display:none;">
+    <h1>志工資料管理</h1>
+    <div class="toolbar">
+      <button id="addBtn">新增志工</button>
+      <button id="saveAllBtn" class="save-all-btn">總儲存</button>
+      <button id="printSelectedBtn">列印所選</button>
+      <button id="printAllBtn">列印全部</button>
+    </div>
+    <div class="save-hint">改完姓名或組別後,記得按「總儲存」一次儲存全部</div>
+    <div class="filter-bar" id="filterBar"></div>
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:36px;"><input type="checkbox" id="checkAll" /></th>
+          <th>姓名</th>
+          <th>組別</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    </div>
   </div>
 
   <script type="module">
-    import { db, doc, getDoc } from "./firebase-config.js";
+    import { db, collection, getDocs, doc, setDoc, deleteDoc } from "./firebase-config.js";
 
-    const msg = document.getElementById("msg");
-    const loginBtn = document.getElementById("loginBtn");
+    const ADMIN_PASSWORD = "073411373";
+    const groups = ["行政", "課輔", "導護", "醫護", "故事", "圖書"];
 
-    loginBtn.addEventListener("click", async () => {
-      const phone = document.getElementById("phone").value.trim();
-      const birthday = document.getElementById("birthday").value.trim();
-      if (!phone || !birthday) {
-        msg.textContent = "請輸入手機號碼與生日";
+    let allVolunteers = []; // { id, name, group }
+    let currentFilter = "全部";
+
+    document.getElementById("unlockBtn").addEventListener("click", () => {
+      const input = document.getElementById("pwdInput").value;
+      if (input === ADMIN_PASSWORD) {
+        document.getElementById("lockScreen").style.display = "none";
+        document.getElementById("mainContent").style.display = "block";
+        buildFilterBar();
+        loadVolunteers();
+      } else {
+        document.getElementById("pwdErr").textContent = "密碼錯誤";
+      }
+    });
+    document.getElementById("pwdInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("unlockBtn").click();
+    });
+
+    function groupOptions(selected) {
+      return groups
+        .map((g) => `<option value="${g}" ${g === selected ? "selected" : ""}>${g}</option>`)
+        .join("");
+    }
+
+    function buildFilterBar() {
+      const bar = document.getElementById("filterBar");
+      const options = ["全部", ...groups];
+      bar.innerHTML = options
+        .map((g) => `<button class="filter-btn ${g === currentFilter ? "active" : ""}" data-group="${g}">${g}</button>`)
+        .join("");
+      bar.querySelectorAll(".filter-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          currentFilter = btn.dataset.group;
+          bar.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          renderTable();
+        });
+      });
+    }
+
+    async function loadVolunteers() {
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "<tr><td colspan='4'>載入中...</td></tr>";
+      const snap = await getDocs(collection(db, "volunteers"));
+      allVolunteers = [];
+      snap.forEach((docSnap) => {
+        allVolunteers.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
+
+      let list = allVolunteers.slice();
+      if (currentFilter !== "全部") {
+        list = list.filter((v) => v.group === currentFilter);
+      }
+      if (!list.length) {
+        tbody.innerHTML = "<tr><td colspan='4'>目前沒有符合的志工資料</td></tr>";
         return;
       }
-      msg.textContent = "查詢中...";
-      try {
-        const snap = await getDoc(doc(db, "volunteers", phone));
-        if (!snap.exists()) {
-          msg.textContent = "查無此手機號碼,請確認是否輸入正確";
-          return;
-        }
-        const data = snap.data();
-        if (String(data.birthday) !== birthday) {
-          msg.textContent = "生日不正確";
-          return;
-        }
-        // 驗證成功,把手機號碼存到瀏覽器的 sessionStorage(關閉分頁就會清除)
-        sessionStorage.setItem("volunteerPhone", phone);
-        window.location.href = "card.html";
-      } catch (err) {
-        console.error(err);
-        msg.textContent = "查詢失敗,請稍後再試";
+      list.forEach((v) => addRow(v.id, v, false));
+    }
+
+    function addRow(id, data = {}, isNew = true) {
+      const tbody = document.getElementById("tableBody");
+      const tr = document.createElement("tr");
+      tr.dataset.id = id || "";
+
+      tr.innerHTML = `
+        <td>${!isNew ? `<input type="checkbox" class="rowCheck" />` : ""}</td>
+        <td><input type="text" class="nameInput" value="${data.name || ""}" placeholder="姓名" /></td>
+        <td><select class="groupInput">${groupOptions(data.group)}</select></td>
+        <td>
+          ${!isNew ? `<button class="del-btn">刪除</button>` : ""}
+        </td>
+      `;
+      tbody.appendChild(tr);
+
+      const delBtn = tr.querySelector(".del-btn");
+      if (delBtn) {
+        delBtn.addEventListener("click", async () => {
+          if (!confirm(`確定要刪除「${data.name}」的資料嗎?`)) return;
+          try {
+            await deleteDoc(doc(db, "volunteers", id));
+            tr.remove();
+          } catch (err) {
+            console.error(err);
+            alert("刪除失敗:" + err.message);
+          }
+        });
       }
+    }
+
+    document.getElementById("addBtn").addEventListener("click", () => {
+      addRow(null, {}, true);
     });
 
-    // 按 Enter 也可以送出
-    document.getElementById("birthday").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") loginBtn.click();
+    document.getElementById("saveAllBtn").addEventListener("click", async () => {
+      const rows = document.querySelectorAll("#tableBody tr");
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const tr of rows) {
+        const nameInput = tr.querySelector(".nameInput");
+        const groupInput = tr.querySelector(".groupInput");
+        if (!nameInput || !groupInput) continue; // 空表格提示列,跳過
+
+        const name = nameInput.value.trim();
+        if (!name) continue; // 空白列(還沒填姓名)就不存,不當錯誤
+
+        const payload = { name, group: groupInput.value };
+        try {
+          const docId = tr.dataset.id || `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+          await setDoc(doc(db, "volunteers", docId), payload);
+          successCount++;
+        } catch (err) {
+          console.error(err);
+          failCount++;
+        }
+      }
+
+      if (failCount) {
+        alert(`儲存完成,成功 ${successCount} 筆,失敗 ${failCount} 筆`);
+      } else {
+        alert(`已儲存 ${successCount} 筆資料`);
+      }
+      loadVolunteers();
     });
 
-    document.getElementById("adminBtn").addEventListener("click", () => {
-      window.location.href = "admin.html";
+    document.getElementById("checkAll").addEventListener("change", (e) => {
+      document.querySelectorAll(".rowCheck").forEach((cb) => (cb.checked = e.target.checked));
+    });
+
+    document.getElementById("printSelectedBtn").addEventListener("click", () => {
+      const ids = [];
+      document.querySelectorAll("#tableBody tr").forEach((tr) => {
+        const cb = tr.querySelector(".rowCheck");
+        if (cb && cb.checked && tr.dataset.id) ids.push(tr.dataset.id);
+      });
+      if (!ids.length) {
+        alert("請先勾選要列印的志工");
+        return;
+      }
+      window.location.href = `print.html?ids=${encodeURIComponent(ids.join(","))}`;
+    });
+
+    document.getElementById("printAllBtn").addEventListener("click", () => {
+      const ids = allVolunteers.map((v) => v.id);
+      if (!ids.length) {
+        alert("目前沒有志工資料");
+        return;
+      }
+      window.location.href = `print.html?ids=${encodeURIComponent(ids.join(","))}`;
     });
   </script>
 </body>
