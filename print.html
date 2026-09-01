@@ -27,7 +27,10 @@
     box-sizing: border-box;
     margin: 0 auto 20px;
     background: #fff;
-    display: grid;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    justify-content: center;
     box-shadow: 0 0 6px rgba(0,0,0,0.15);
   }
   @media print {
@@ -41,6 +44,8 @@
 
   .sticker {
     position: relative;
+    width: 85.6mm;
+    height: 54mm;
     border: 1px solid #999;
     background-size: cover;
     background-position: center;
@@ -100,19 +105,11 @@
     <button onclick="window.print()">列印</button>
     <button onclick="window.location.href='index.html'">返回編輯頁</button>
     <span class="print-options">
-      每頁張數:
-      <select id="perPageSelect">
-        <option value="4">4張(較大)</option>
-        <option value="6" selected>6張</option>
-        <option value="8">8張</option>
-        <option value="9">9張</option>
-        <option value="10">10張</option>
-        <option value="12">12張(較小)</option>
-      </select>
-    </span>
-    <span class="print-options">
       邊界(mm):
       <input type="number" id="marginInput" value="5" min="0" max="20" />
+    </span>
+    <span class="print-options" style="background:#eef7ee; border-color:#bcdcc0;">
+      卡片尺寸:85.6×54mm(信用卡標準尺寸,可放入透明證件夾) · 每頁約 <b id="perPageInfo">--</b> 張
     </span>
   </div>
   <div id="content">
@@ -129,22 +126,19 @@
 
     const DEFAULT_SETTINGS = {
       schoolYear: "115學年度",
-      fontSchool: 24,
-      fontYear: 16,
-      fontGroup: 18,
-      fontIcon: 40,
-      fontName: 32,
+      fontSchool: 18,
+      fontYear: 11,
+      fontGroup: 13,
+      fontIcon: 30,
+      fontName: 24,
     };
 
-    // 每頁張數 -> 欄數/列數 對照表
-    const PAGE_LAYOUTS = {
-      4: { cols: 1, rows: 4 },
-      6: { cols: 2, rows: 3 },
-      8: { cols: 2, rows: 4 },
-      9: { cols: 3, rows: 3 },
-      10: { cols: 2, rows: 5 },
-      12: { cols: 3, rows: 4 },
-    };
+    // 卡片固定尺寸(信用卡標準尺寸,mm)
+    const CARD_W_MM = 85.6;
+    const CARD_H_MM = 54;
+    const GAP_MM = 3;
+    const PAGE_W_MM = 210;
+    const PAGE_H_MM = 297;
 
     const groupIcons = {
       "行政": "🗂️", "課輔": "📖", "導護": "🚦",
@@ -206,14 +200,19 @@
 
       renderPages();
 
-      document.getElementById("perPageSelect").addEventListener("change", renderPages);
       document.getElementById("marginInput").addEventListener("change", renderPages);
     }
 
     function renderPages() {
-      const perPage = Number(document.getElementById("perPageSelect").value);
       const marginMm = Number(document.getElementById("marginInput").value) || 0;
-      const layout = PAGE_LAYOUTS[perPage] || PAGE_LAYOUTS[6];
+
+      const usableW = PAGE_W_MM - marginMm * 2;
+      const usableH = PAGE_H_MM - marginMm * 2;
+      const cols = Math.max(1, Math.floor((usableW + GAP_MM) / (CARD_W_MM + GAP_MM)));
+      const rows = Math.max(1, Math.floor((usableH + GAP_MM) / (CARD_H_MM + GAP_MM)));
+      const perPage = cols * rows;
+
+      document.getElementById("perPageInfo").textContent = perPage;
 
       content.innerHTML = "";
 
@@ -223,9 +222,7 @@
         const page = document.createElement("div");
         page.className = "print-page";
         page.style.padding = marginMm + "mm";
-        page.style.gap = "4mm";
-        page.style.gridTemplateColumns = `repeat(${layout.cols}, 1fr)`;
-        page.style.gridTemplateRows = `repeat(${layout.rows}, 1fr)`;
+        page.style.gap = GAP_MM + "mm";
 
         chunk.forEach((data) => {
           const div = document.createElement("div");
