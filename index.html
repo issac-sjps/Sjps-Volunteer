@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>新莊國小 志工證 列印管理系統</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   body { font-family: "Microsoft JhengHei", sans-serif; background: #f2f5f7; margin: 0; padding: 20px; }
   h1 { text-align: center; color: #234; font-size: 20px; }
@@ -141,25 +142,25 @@
       <button id="toggleImportBtn" class="import-btn">名單匯入/匯出</button>
     </div>
     <div class="import-panel" id="importPanel" style="display:none;">
-      <h3>名單匯入 / 匯出(CSV 檔,Excel 可以直接開)</h3>
-      <div class="sub">CSV 欄位順序固定是:姓名,組別。組別要填「行政、課輔、導護、醫護、故事、圖書」其中一個。</div>
+      <h3>名單匯入 / 匯出(Excel 檔案,共 6 個工作表)</h3>
+      <div class="sub">Excel 檔裡會有 6 個分頁(工作表),分頁名稱分別是「行政、課輔、導護、醫護、故事、圖書」,每個分頁只要填姓名就好,一列一位志工。</div>
 
       <div class="import-block">
         <h4>① 下載空白範本</h4>
-        <p>給老師的空白表格,照著填姓名和組別就好。</p>
-        <button id="downloadTemplateBtn">下載空白範本.csv</button>
+        <p>給老師的空白 Excel 檔,打開後下方會看到 6 個分頁籤,照組別填姓名就好。</p>
+        <button id="downloadTemplateBtn">下載空白範本.xlsx</button>
       </div>
 
       <div class="import-block">
         <h4>② 匯出目前名單</h4>
-        <p>把資料庫目前所有志工存成 CSV,可以備份或給其他人。</p>
-        <button id="exportCsvBtn">匯出目前名單.csv</button>
+        <p>把資料庫目前所有志工,依組別自動分裝進 6 個分頁匯出成 Excel,方便整理、確認或備份。</p>
+        <button id="exportCsvBtn">匯出目前名單.xlsx</button>
       </div>
 
       <div class="import-block">
-        <h4>③ 匯入 CSV</h4>
-        <p>選一個填好的 CSV 檔案,再選擇匯入方式。</p>
-        <input type="file" id="importFileInput" accept=".csv" />
+        <h4>③ 匯入 Excel</h4>
+        <p>選一個填好的 Excel 檔案(.xlsx),再選擇匯入方式。系統會自動讀取 6 個分頁,分頁名稱要跟組別名稱一致。</p>
+        <input type="file" id="importFileInput" accept=".xlsx,.xls" />
         <div class="import-mode-row">
           <label><input type="radio" name="importMode" value="append" checked /> 新增(保留原有名單,把新名單加進去)</label>
           <label><input type="radio" name="importMode" value="overwrite" /> 覆蓋(先清空,再匯入這份名單)</label>
@@ -236,7 +237,7 @@
     const DEFAULT_SETTINGS = {
       schoolYear: "115學年度",
       fontSchool: 18,
-      fontYear: 11,
+      fontYear: 18,
       fontGroup: 13,
       fontIcon: 30,
       fontName: 24,
@@ -312,34 +313,29 @@
       panel.style.display = panel.style.display === "none" ? "block" : "none";
     });
 
-    // 產生 CSV 檔案並觸發下載(加上 BOM,確保 Excel 開啟中文不會亂碼)
-    function downloadCsv(filename, rows) {
-      const csvContent = rows.map((row) => row.map(csvEscape).join(",")).join("\r\n");
-      const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    function csvEscape(value) {
-      const str = String(value ?? "");
-      if (str.includes(",") || str.includes("\"") || str.includes("\n")) {
-        return `"${str.replace(/"/g, '""')}"`;
-      }
-      return str;
+    // 產生 6 個工作表的 Excel 檔並觸發下載
+    // sheetsData 格式: { 行政: ["王大明","..."], 課輔: [...], ... }
+    function downloadWorkbook(filename, sheetsData) {
+      const wb = XLSX.utils.book_new();
+      groups.forEach((g) => {
+        const names = sheetsData[g] || [];
+        const rows = [["姓名"], ...names.map((n) => [n])];
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws["!cols"] = [{ wch: 16 }];
+        XLSX.utils.book_append_sheet(wb, ws, g);
+      });
+      XLSX.writeFile(wb, filename);
     }
 
     document.getElementById("downloadTemplateBtn").addEventListener("click", () => {
-      downloadCsv("志工名單_空白範本.csv", [
-        ["姓名", "組別"],
-        ["王大明", "行政"],
-        ["李小華", "課輔"],
-      ]);
+      downloadWorkbook("志工名單_空白範本.xlsx", {
+        "行政": ["王大明"],
+        "課輔": ["李小華"],
+        "導護": [],
+        "醫護": [],
+        "故事": [],
+        "圖書": [],
+      });
     });
 
     document.getElementById("exportCsvBtn").addEventListener("click", () => {
@@ -347,33 +343,14 @@
         alert("目前沒有資料可以匯出");
         return;
       }
-      const rows = [["姓名", "組別"], ...allVolunteers.map((v) => [v.name, v.group])];
-      downloadCsv("志工名單_匯出.csv", rows);
-    });
-
-    // 簡單 CSV 解析(支援用引號包住含逗號的欄位)
-    function parseCsv(text) {
-      const lines = text.replace(/^\uFEFF/, "").split(/\r\n|\n|\r/).filter((l) => l.trim() !== "");
-      return lines.map((line) => {
-        const cells = [];
-        let cur = "";
-        let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-          const ch = line[i];
-          if (inQuotes) {
-            if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
-            else if (ch === '"') { inQuotes = false; }
-            else { cur += ch; }
-          } else {
-            if (ch === '"') inQuotes = true;
-            else if (ch === ",") { cells.push(cur); cur = ""; }
-            else cur += ch;
-          }
-        }
-        cells.push(cur);
-        return cells.map((c) => c.trim());
+      const sheetsData = {};
+      groups.forEach((g) => { sheetsData[g] = []; });
+      allVolunteers.forEach((v) => {
+        const g = groups.includes(v.group) ? v.group : groups[0];
+        sheetsData[g].push(v.name);
       });
-    }
+      downloadWorkbook("志工名單_匯出.xlsx", sheetsData);
+    });
 
     document.getElementById("importRunBtn").addEventListener("click", async () => {
       const fileInput = document.getElementById("importFileInput");
@@ -383,7 +360,7 @@
 
       const file = fileInput.files[0];
       if (!file) {
-        resultBox.textContent = "請先選擇要匯入的 CSV 檔案";
+        resultBox.textContent = "請先選擇要匯入的 Excel 檔案";
         return;
       }
 
@@ -400,36 +377,39 @@
       runBtn.textContent = "匯入中...請稍候";
 
       try {
-        const text = await file.text();
-        const rows = parseCsv(text);
-        if (!rows.length) {
-          resultBox.textContent = "檔案是空的,請確認內容";
+        const arrayBuffer = await file.arrayBuffer();
+        const wb = XLSX.read(arrayBuffer, { type: "array" });
+
+        const parsedEntries = [];
+        let emptyNameCount = 0;
+        let unmatchedSheetCount = 0;
+        const matchedSheets = [];
+
+        wb.SheetNames.forEach((sheetName) => {
+          const trimmedSheetName = sheetName.trim();
+          if (!groups.includes(trimmedSheetName)) {
+            unmatchedSheetCount++;
+            return; // 分頁名稱不是六個組別之一,跳過
+          }
+          matchedSheets.push(trimmedSheetName);
+          const sheet = wb.Sheets[sheetName];
+          const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+          rows.forEach((row, idx) => {
+            const cell = row && row[0] !== undefined ? String(row[0]).trim() : "";
+            if (idx === 0 && cell === "姓名") return; // 跳過標題列
+            if (!cell) { emptyNameCount++; return; }
+            parsedEntries.push({ name: cell, group: trimmedSheetName });
+          });
+        });
+
+        if (!matchedSheets.length) {
+          resultBox.textContent = "找不到符合的工作表,分頁名稱要是「行政、課輔、導護、醫護、故事、圖書」其中之一";
           return;
         }
 
-        // 判斷第一列是不是標題列(姓名/組別),是的話跳過
-        let dataRows = rows;
-        if (rows[0][0] === "姓名") {
-          dataRows = rows.slice(1);
-        }
-
-        const parsedEntries = [];
-        let unknownGroupCount = 0;
-        let emptyNameCount = 0;
-
-        dataRows.forEach((cols) => {
-          const name = (cols[0] || "").trim();
-          let group = (cols[1] || "").trim();
-          if (!name) { emptyNameCount++; return; }
-          if (!groups.includes(group)) {
-            unknownGroupCount++;
-            group = groups[0]; // 組別不明,先預設第一個組別,老師之後可在表格再改
-          }
-          parsedEntries.push({ name, group });
-        });
-
         if (!parsedEntries.length) {
-          resultBox.textContent = "沒有解析到任何有效資料,請確認 CSV 格式是「姓名,組別」";
+          resultBox.textContent = "沒有解析到任何有效姓名,請確認每個分頁的姓名欄有填資料";
           return;
         }
 
@@ -450,12 +430,12 @@
           })
         );
 
-        let msg = `匯入完成:成功 ${successCount} 筆`;
+        let msg = `匯入完成:成功 ${successCount} 筆(共讀取 ${matchedSheets.length} 個分頁:${matchedSheets.join("、")})`;
         if (failCount) msg += `,失敗 ${failCount} 筆`;
-        if (emptyNameCount) msg += `,略過 ${emptyNameCount} 筆(姓名空白)`;
-        if (unknownGroupCount) msg += `,${unknownGroupCount} 筆組別無法辨識已預設為「${groups[0]}」,請至表格確認修正`;
+        if (emptyNameCount) msg += `,略過 ${emptyNameCount} 列空白`;
+        if (unmatchedSheetCount) msg += `,有 ${unmatchedSheetCount} 個分頁名稱不符合組別已忽略`;
 
-        resultBox.style.color = failCount || unknownGroupCount ? "#c0392b" : "#2f6f4f";
+        resultBox.style.color = failCount || unmatchedSheetCount ? "#c0392b" : "#2f6f4f";
         resultBox.textContent = msg;
         fileInput.value = "";
         loadVolunteers();
