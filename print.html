@@ -143,6 +143,13 @@
         加印背面(持證須知)
       </label>
     </span>
+    <span class="print-options" id="backOffsetGroup" style="background:#eef2ff; border-color:#c3cdf0; display:none;">
+      背面微調(mm):
+      左右
+      <input type="number" id="backOffsetXInput" value="0" step="0.5" style="width:55px;" title="正值=背面往右移,負值=背面往左移" />
+      上下
+      <input type="number" id="backOffsetYInput" value="0" step="0.5" style="width:55px;" title="正值=背面往下移,負值=背面往上移" />
+    </span>
   </div>
   <div id="content">
     <div class="loading-box">
@@ -246,7 +253,13 @@
       renderPages();
 
       document.getElementById("marginInput").addEventListener("change", renderPages);
-      document.getElementById("backEnableInput").addEventListener("change", renderPages);
+      document.getElementById("backEnableInput").addEventListener("change", () => {
+        document.getElementById("backOffsetGroup").style.display =
+          document.getElementById("backEnableInput").checked ? "inline-flex" : "none";
+        renderPages();
+      });
+      document.getElementById("backOffsetXInput").addEventListener("change", renderPages);
+      document.getElementById("backOffsetYInput").addEventListener("change", renderPages);
     }
 
     function renderPages() {
@@ -261,6 +274,8 @@
       document.getElementById("perPageInfo").textContent = perPage;
 
       const backEnabled = document.getElementById("backEnableInput").checked;
+      const backOffsetX = Number(document.getElementById("backOffsetXInput").value) || 0; // 正值=背面往右移
+      const backOffsetY = Number(document.getElementById("backOffsetYInput").value) || 0; // 正值=背面往下移
 
       content.innerHTML = "";
 
@@ -305,7 +320,12 @@
         if (backEnabled) {
           const backPage = document.createElement("div");
           backPage.className = "print-page";
-          backPage.style.padding = marginMm + "mm";
+          // 用不對稱的 padding 讓整體內容往指定方向偏移,修正雙面列印的定位誤差
+          const topPad = marginMm + backOffsetY;
+          const bottomPad = marginMm - backOffsetY;
+          const leftPad = marginMm + backOffsetX;
+          const rightPad = marginMm - backOffsetX;
+          backPage.style.padding = `${topPad}mm ${rightPad}mm ${bottomPad}mm ${leftPad}mm`;
           backPage.style.gap = GAP_MM + "mm";
 
           // 背面每一格內容都相同(都是持證須知),所以排列順序不影響對齊;
