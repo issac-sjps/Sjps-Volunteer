@@ -94,13 +94,14 @@
   }
   .sticker.back-card ol {
     margin: 0 0 3mm;
-    padding-left: 1.3em;
+    padding-left: 2.4em;
   }
   .sticker.back-card li { margin-bottom: 1mm; }
   .sticker.back-card .back-addr {
     font-size: 10px;
     color: #444;
     margin-top: 1mm;
+    text-align: center;
   }
 
   .loading-box {
@@ -122,6 +123,7 @@
 
   @media print {
     .toolbar { display: none; }
+    #backOffsetHint { display: none !important; }
     body { padding: 0; background: #fff; }
   }
 </style>
@@ -145,11 +147,14 @@
     </span>
     <span class="print-options" id="backOffsetGroup" style="background:#eef2ff; border-color:#c3cdf0; display:none;">
       背面微調(mm):
-      左右
-      <input type="number" id="backOffsetXInput" value="0" step="0.5" style="width:55px;" title="正值=背面往右移,負值=背面往左移" />
-      上下
-      <input type="number" id="backOffsetYInput" value="0" step="0.5" style="width:55px;" title="正值=背面往下移,負值=背面往上移" />
+      左右(+右 / -左)
+      <input type="number" id="backOffsetXInput" value="0" step="0.5" style="width:55px;" title="正值：背面內容整體往右移；負值：往左移" />
+      上下(+下 / -上)
+      <input type="number" id="backOffsetYInput" value="0" step="0.5" style="width:55px;" title="正值：背面內容整體往下移；負值：往上移" />
     </span>
+  </div>
+  <div id="backOffsetHint" style="display:none; text-align:center; font-size:13px; color:#666; margin:-14px 0 16px;">
+    對照剪下的前後兩張卡片：背面內容整體偏右 → 左右填「負值」拉回左邊；偏左 → 填「正值」拉回右邊；偏下 → 上下填「負值」；偏上 → 填「正值」。
   </div>
   <div id="content">
     <div class="loading-box">
@@ -254,8 +259,9 @@
 
       document.getElementById("marginInput").addEventListener("change", renderPages);
       document.getElementById("backEnableInput").addEventListener("change", () => {
-        document.getElementById("backOffsetGroup").style.display =
-          document.getElementById("backEnableInput").checked ? "inline-flex" : "none";
+        const on = document.getElementById("backEnableInput").checked;
+        document.getElementById("backOffsetGroup").style.display = on ? "inline-flex" : "none";
+        document.getElementById("backOffsetHint").style.display = on ? "block" : "none";
         renderPages();
       });
       document.getElementById("backOffsetXInput").addEventListener("change", renderPages);
