@@ -77,6 +77,32 @@
   .sticker.bg-library  { background-image: url("images/bg-library.jpg"); }
   .sticker.bg-default  { background-color: #f7f7f7; border-color: #ccc; }
 
+  /* 背面(持證須知)卡片 */
+  .sticker.back-card {
+    background: #fbfbfb;
+    display: block;
+    text-align: left;
+    padding: 5mm 6mm;
+    font-size: 10.5px;
+    line-height: 1.55;
+    color: #222;
+  }
+  .sticker.back-card .back-title {
+    font-weight: bold;
+    font-size: 12.5px;
+    margin-bottom: 3mm;
+  }
+  .sticker.back-card ol {
+    margin: 0 0 3mm;
+    padding-left: 1.3em;
+  }
+  .sticker.back-card li { margin-bottom: 1mm; }
+  .sticker.back-card .back-addr {
+    font-size: 10px;
+    color: #444;
+    margin-top: 1mm;
+  }
+
   .loading-box {
     text-align: center;
     color: #555;
@@ -111,6 +137,12 @@
     <span class="print-options" style="background:#eef7ee; border-color:#bcdcc0;">
       卡片尺寸:85.6×54mm(信用卡標準尺寸,可放入透明證件夾) · 每頁約 <b id="perPageInfo">--</b> 張
     </span>
+    <span class="print-options" style="background:#fff7e6; border-color:#f0d9a0;">
+      <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+        <input type="checkbox" id="backEnableInput" />
+        加印背面(持證須知)
+      </label>
+    </span>
   </div>
   <div id="content">
     <div class="loading-box">
@@ -144,6 +176,19 @@
       "行政": "🗂️", "課輔": "📖", "導護": "🚦",
       "醫護": "🩺", "故事": "🦉", "圖書": "📚",
     };
+
+    const BACK_CARD_HTML = `
+      <div class="back-title">持證須知:</div>
+      <ol>
+        <li>進入校園請務必配戴,以便核實身分。</li>
+        <li>本證僅為身分識別證使用,不做其他任何用途。</li>
+        <li>本證應妥為保管,不得租借他人使用。</li>
+        <li>本證若遺失,請支付工本費用 100 元,重新補發。</li>
+        <li>終止單位服務時,請將本證繳回註銷。</li>
+        <li>拾獲本證時,煩請寄回本校輔導處。</li>
+      </ol>
+      <div class="back-addr">地址:高雄市左營區自由三路一號 電話:(07)3411373</div>
+    `;
 
     const groupColorClass = {
       "行政": "bg-admin", "課輔": "bg-tutor", "導護": "bg-guard",
@@ -201,6 +246,7 @@
       renderPages();
 
       document.getElementById("marginInput").addEventListener("change", renderPages);
+      document.getElementById("backEnableInput").addEventListener("change", renderPages);
     }
 
     function renderPages() {
@@ -214,7 +260,33 @@
 
       document.getElementById("perPageInfo").textContent = perPage;
 
+      const backEnabled = document.getElementById("backEnableInput").checked;
+
       content.innerHTML = "";
+
+      // 建立一張正面卡片
+      function buildFrontCard(data) {
+        const div = document.createElement("div");
+        div.className = `sticker ${groupColorClass[data.group] || "bg-default"}`;
+        div.innerHTML = `
+          <div class="sticker-content">
+            <div class="year" style="font-size:${settings.fontYear}px; color:#666;">${settings.schoolYear}</div>
+            <div class="school" style="font-size:${settings.fontSchool}px;">${SCHOOL_NAME}</div>
+            <div class="icon" style="font-size:${settings.fontIcon}px;">${groupIcons[data.group] || "🙂"}</div>
+            <div class="group" style="font-size:${settings.fontGroup}px;">${data.group}志工</div>
+            <div class="name" style="font-size:${settings.fontName}px;">${data.name}</div>
+          </div>
+        `;
+        return div;
+      }
+
+      // 建立一張背面卡片(內容固定,都是持證須知)
+      function buildBackCard() {
+        const div = document.createElement("div");
+        div.className = "sticker back-card";
+        div.innerHTML = BACK_CARD_HTML;
+        return div;
+      }
 
       for (let i = 0; i < cachedVolunteers.length; i += perPage) {
         const chunk = cachedVolunteers.slice(i, i + perPage);
@@ -225,21 +297,27 @@
         page.style.gap = GAP_MM + "mm";
 
         chunk.forEach((data) => {
-          const div = document.createElement("div");
-          div.className = `sticker ${groupColorClass[data.group] || "bg-default"}`;
-          div.innerHTML = `
-            <div class="sticker-content">
-              <div class="year" style="font-size:${settings.fontYear}px; color:#666;">${settings.schoolYear}</div>
-              <div class="school" style="font-size:${settings.fontSchool}px;">${SCHOOL_NAME}</div>
-              <div class="icon" style="font-size:${settings.fontIcon}px;">${groupIcons[data.group] || "🙂"}</div>
-              <div class="group" style="font-size:${settings.fontGroup}px;">${data.group}志工</div>
-              <div class="name" style="font-size:${settings.fontName}px;">${data.name}</div>
-            </div>
-          `;
-          page.appendChild(div);
+          page.appendChild(buildFrontCard(data));
         });
 
         content.appendChild(page);
+
+        if (backEnabled) {
+          const backPage = document.createElement("div");
+          backPage.className = "print-page";
+          backPage.style.padding = marginMm + "mm";
+          backPage.style.gap = GAP_MM + "mm";
+
+          // 背面每一格內容都相同(都是持證須知),所以排列順序不影響對齊;
+          // 真正重要的是「卡片張數」要跟這一頁正面完全一樣,
+          // 這樣 flex-wrap 自動換行的位置(尤其最後一頁不滿整頁時)才會跟正面一致,
+          // 剪下來每張背面才會準確對到對應的正面卡片。
+          chunk.forEach(() => {
+            backPage.appendChild(buildBackCard());
+          });
+
+          content.appendChild(backPage);
+        }
       }
     }
   </script>
