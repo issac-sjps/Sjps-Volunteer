@@ -138,6 +138,7 @@
       <button id="saveAllBtn" class="save-all-btn">總儲存</button>
       <button id="printSelectedBtn">列印所選</button>
       <button id="printAllBtn">列印全部</button>
+      <button id="deleteSelectedBtn" style="background:#c0392b;">刪除所選</button>
       <button id="toggleSettingsBtn" class="settings-btn">卡片設定</button>
       <button id="toggleImportBtn" class="import-btn">名單匯入/匯出</button>
     </div>
@@ -206,6 +207,9 @@
       </div>
     </div>
     <div class="save-hint">改完姓名或組別後,記得按「總儲存」一次儲存全部</div>
+    <div class="filter-bar" style="margin-bottom:6px;">
+      <input type="text" id="nameSearch" placeholder="搜尋姓名..." style="max-width:300px; padding:7px 10px; border:1px solid #ccc; border-radius:20px; font-size:13px; box-sizing:border-box;" />
+    </div>
     <div class="filter-bar" id="filterBar"></div>
     <div class="table-wrap">
     <table>
@@ -245,6 +249,7 @@
 
     let allVolunteers = []; // { id, name, group }
     let currentFilter = "全部";
+    let currentSearch = "";
 
     document.getElementById("unlockBtn").addEventListener("click", () => {
       const input = document.getElementById("pwdInput").value;
@@ -418,11 +423,31 @@
           await Promise.all(allVolunteers.map((v) => deleteDoc(doc(db, "volunteers", v.id)).catch(() => {})));
         }
 
+        // 去除重複:同姓名+同組別視為同一人。
+        // 新增模式下,若資料庫已經有一樣的人,就跳過不重複建立;
+        // 同一份 Excel 檔裡如果自己就重複列了兩次,也只保留第一筆。
+        const existingKeySet = new Set(
+          mode === "overwrite"
+            ? []
+            : allVolunteers.map((v) => `${v.group}||${(v.name || "").trim()}`)
+        );
+        let duplicateSkipCount = 0;
+        const entriesToInsert = [];
+        for (const entry of parsedEntries) {
+          const key = `${entry.group}||${entry.name.trim()}`;
+          if (existingKeySet.has(key)) {
+            duplicateSkipCount++;
+            continue;
+          }
+          existingKeySet.add(key);
+          entriesToInsert.push(entry);
+        }
+
         // 寫入新資料(平行處理,加快速度)
         let successCount = 0;
         let failCount = 0;
         await Promise.all(
-          parsedEntries.map((entry) => {
+          entriesToInsert.map((entry) => {
             const docId = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
             return setDoc(doc(db, "volunteers", docId), entry)
               .then(() => { successCount++; })
@@ -433,6 +458,7 @@
         let msg = `匯入完成:成功 ${successCount} 筆(共讀取 ${matchedSheets.length} 個分頁:${matchedSheets.join("、")})`;
         if (failCount) msg += `,失敗 ${failCount} 筆`;
         if (emptyNameCount) msg += `,略過 ${emptyNameCount} 列空白`;
+        if (duplicateSkipCount) msg += `,略過 ${duplicateSkipCount} 筆重複姓名(同組別已存在,避免重複建立)`;
         if (unmatchedSheetCount) msg += `,有 ${unmatchedSheetCount} 個分頁名稱不符合組別已忽略`;
 
         resultBox.style.color = failCount || unmatchedSheetCount ? "#c0392b" : "#2f6f4f";
@@ -488,6 +514,9 @@
       let list = allVolunteers.slice();
       if (currentFilter !== "全部") {
         list = list.filter((v) => v.group === currentFilter);
+      }
+      if (currentSearch) {
+        list = list.filter((v) => (v.name || "").toLowerCase().includes(currentSearch));
       }
       if (!list.length) {
         tbody.innerHTML = "<tr><td colspan='5'>目前沒有符合的志工資料</td></tr>";
@@ -593,6 +622,53 @@
 
     document.getElementById("checkAll").addEventListener("change", (e) => {
       document.querySelectorAll(".rowCheck").forEach((cb) => (cb.checked = e.target.checked));
+    });
+
+    document.getElementById("nameSearch").addEventListener("input", (e) => {
+      currentSearch = e.target.value.trim().toLowerCase();
+      renderTable();
+    });
+
+    document.getElementById("deleteSelectedBtn").addEventListener("click", async () => {
+      const selectedTrs = Array.from(document.querySelectorAll("#tableBody tr")).filter((tr) => {
+        const cb = tr.querySelector(".rowCheck");
+        return cb && cb.checked && tr.dataset.id;
+      });
+
+      if (!selectedTrs.length) {
+        alert("請先勾選要刪除的志工");
+        return;
+      }
+
+      const names = selectedTrs.map((tr) => tr.querySelector(".nameInput")?.value || "").join("、");
+      if (!confirm(`確定要刪除以下 ${selectedTrs.length} 位志工嗎?\n${names}\n此動作無法復原!`)) return;
+
+      const btn = document.getElementById("deleteSelectedBtn");
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "刪除中...";
+
+      let successCount = 0;
+      let failCount = 0;
+      try {
+        await Promise.all(
+          selectedTrs.map((tr) =>
+            deleteDoc(doc(db, "volunteers", tr.dataset.id))
+              .then(() => { successCount++; })
+              .catch((err) => { console.error(err); failCount++; })
+          )
+        );
+        if (failCount) {
+          alert(`刪除完成,成功 ${successCount} 筆,失敗 ${failCount} 筆`);
+        } else {
+          alert(`已刪除 ${successCount} 筆資料`);
+        }
+        document.getElementById("checkAll").checked = false;
+        loadVolunteers();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
     });
 
     document.getElementById("printSelectedBtn").addEventListener("click", () => {
