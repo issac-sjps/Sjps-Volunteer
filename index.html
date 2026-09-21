@@ -55,6 +55,15 @@
     display: inline-block; margin-left: 4px; font-size: 11px; color: #fff;
     background: #e0a800; border-radius: 4px; padding: 1px 5px; vertical-align: middle;
   }
+  tr.multi-role-row td { background: #e3f2fd !important; }
+  tr.multi-role-row .nameInput { border: 2px solid #4a90d9; background: #e3f2fd; }
+  .multi-role-badge {
+    display: inline-block; margin-left: 4px; font-size: 11px; color: #fff;
+    background: #4a90d9; border-radius: 4px; padding: 1px 5px; vertical-align: middle;
+  }
+  /* 同時符合「重複」與「兼任」時,以黃色(重複,較急迫)為主要底色 */
+  tr.dup-row.multi-role-row td { background: #fff3cd !important; }
+  tr.dup-row.multi-role-row .nameInput { border: 2px solid #e0a800; background: #fff3cd; }
   .toolbar .settings-btn { background: #7d6608; }
   .toolbar .import-btn { background: #8e44ad; }
   .import-panel {
@@ -147,6 +156,7 @@
       <button id="deleteSelectedBtn" style="background:#c0392b;">刪除所選</button>
       <button id="toggleSettingsBtn" class="settings-btn" title="再按一次可收合面板">卡片設定</button>
       <button id="toggleImportBtn" class="import-btn" title="再按一次可收合面板">名單匯入/匯出</button>
+      <button id="toggleStatsBtn" class="import-btn" title="再按一次可收合面板">統計 / 核對清單</button>
     </div>
     <div class="import-panel" id="importPanel" style="display:none;">
       <h3>名單匯入 / 匯出(Excel 檔案,共 6 個工作表)</h3>
@@ -217,10 +227,19 @@
         <button class="save-settings-btn" id="saveSettingsBtn">儲存設定</button>
       </div>
     </div>
+    <div class="settings-panel" id="statsPanel" style="display:none;">
+      <h3>統計 / 核對清單</h3>
+      <div id="statsGroupCounts" style="margin-bottom:16px;"></div>
+      <div id="statsDupList" style="margin-bottom:16px;"></div>
+      <div id="statsMultiRoleList"></div>
+    </div>
     <div class="save-hint">改完姓名或組別後,記得按「總儲存」一次儲存全部</div>
     <div id="dupBanner" style="display:none; max-width:640px; margin:0 auto 12px; background:#fff3cd; border:1px solid #e0a800; color:#7d6608; border-radius:6px; padding:10px 14px; font-size:13px; line-height:1.6;"></div>
+    <div id="multiRoleBanner" style="display:none; max-width:640px; margin:0 auto 12px; background:#e3f2fd; border:1px solid #4a90d9; color:#2a5d8a; border-radius:6px; padding:10px 14px; font-size:13px; line-height:1.6;"></div>
     <div class="filter-bar" style="margin-bottom:6px;">
       <input type="text" id="nameSearch" placeholder="搜尋姓名..." style="max-width:300px; padding:7px 10px; border:1px solid #ccc; border-radius:20px; font-size:13px; box-sizing:border-box;" />
+      <button id="nameSearchBtn" type="button" style="border-radius:20px; padding:7px 16px; font-size:13px;">🔍 搜尋</button>
+      <button id="nameSearchClearBtn" type="button" style="display:none; border-radius:20px; padding:7px 14px; font-size:13px; background:#999;">清除</button>
     </div>
     <div class="filter-bar" id="filterBar"></div>
     <div class="table-wrap">
@@ -326,6 +345,88 @@
         btn.disabled = false;
         btn.textContent = originalText;
       }
+    });
+
+    function renderStatsPanel() {
+      const normalizeName = (n) => (n || "").replace(/\s+/g, "").replace(/\u3000/g, "");
+
+      // 各組人數
+      const groupCounts = {};
+      groups.forEach((g) => (groupCounts[g] = 0));
+      allVolunteers.forEach((v) => {
+        if (groupCounts[v.group] === undefined) groupCounts[v.group] = 0;
+        groupCounts[v.group]++;
+      });
+      const groupCountsHtml =
+        `<h4 style="margin:0 0 8px;">各組人數(共 ${allVolunteers.length} 人)</h4>` +
+        `<table style="width:100%; border-collapse:collapse; font-size:13px;">` +
+        Object.entries(groupCounts)
+          .map(
+            ([g, c]) =>
+              `<tr><td style="padding:4px 8px; border-bottom:1px solid #eee;">${g}</td><td style="padding:4px 8px; border-bottom:1px solid #eee; text-align:right;">${c} 人</td></tr>`
+          )
+          .join("") +
+        `</table>`;
+      document.getElementById("statsGroupCounts").innerHTML = groupCountsHtml;
+
+      // 重複清單(同姓名+同組別)
+      const dupCountMap = {};
+      allVolunteers.forEach((v) => {
+        const key = `${v.group}||${normalizeName(v.name)}`;
+        dupCountMap[key] = (dupCountMap[key] || 0) + 1;
+      });
+      const dupSeen = new Set();
+      const dupRows = [];
+      allVolunteers.forEach((v) => {
+        const key = `${v.group}||${normalizeName(v.name)}`;
+        if (dupCountMap[key] > 1 && !dupSeen.has(key)) {
+          dupSeen.add(key);
+          dupRows.push({ name: (v.name || "").trim(), group: v.group, count: dupCountMap[key] });
+        }
+      });
+      document.getElementById("statsDupList").innerHTML =
+        `<h4 style="margin:0 0 8px; color:#7d6608;">🟡 重複清單(同姓名+同組別,共 ${dupRows.length} 組)</h4>` +
+        (dupRows.length
+          ? `<table style="width:100%; border-collapse:collapse; font-size:13px;">` +
+            dupRows
+              .map(
+                (r) =>
+                  `<tr><td style="padding:4px 8px; border-bottom:1px solid #eee;">${r.name}</td><td style="padding:4px 8px; border-bottom:1px solid #eee;">${r.group}</td><td style="padding:4px 8px; border-bottom:1px solid #eee; text-align:right;">${r.count} 筆</td></tr>`
+              )
+              .join("") +
+            `</table>`
+          : `<div style="font-size:13px; color:#999;">目前沒有重複資料</div>`);
+
+      // 兼任清單(同姓名+不同組別)
+      const nameGroupMap = {};
+      allVolunteers.forEach((v) => {
+        const n = normalizeName(v.name);
+        if (!n) return;
+        if (!nameGroupMap[n]) nameGroupMap[n] = { display: (v.name || "").trim(), groups: new Set() };
+        nameGroupMap[n].groups.add(v.group);
+      });
+      const multiRows = Object.values(nameGroupMap).filter((x) => x.groups.size > 1);
+      document.getElementById("statsMultiRoleList").innerHTML =
+        `<h4 style="margin:0 0 8px; color:#2a5d8a;">🔵 兼任清單(同姓名+不同組別,共 ${multiRows.length} 人)</h4>` +
+        (multiRows.length
+          ? `<table style="width:100%; border-collapse:collapse; font-size:13px;">` +
+            multiRows
+              .map(
+                (r) =>
+                  `<tr><td style="padding:4px 8px; border-bottom:1px solid #eee;">${r.display}</td><td style="padding:4px 8px; border-bottom:1px solid #eee;">${Array.from(r.groups).join("、")}</td></tr>`
+              )
+              .join("") +
+            `</table>`
+          : `<div style="font-size:13px; color:#999;">目前沒有跨組別同名的人</div>`);
+    }
+
+    document.getElementById("toggleStatsBtn").addEventListener("click", () => {
+      const panel = document.getElementById("statsPanel");
+      const btn = document.getElementById("toggleStatsBtn");
+      const isOpen = panel.style.display !== "none";
+      panel.style.display = isOpen ? "none" : "block";
+      btn.textContent = isOpen ? "統計 / 核對清單" : "收合面板 ▲";
+      if (!isOpen) renderStatsPanel();
     });
 
     document.getElementById("toggleImportBtn").addEventListener("click", () => {
@@ -544,47 +645,88 @@
       // 找出「同姓名+同組別」重複的人(以目前全部名單為準,不受篩選/搜尋影響)
       // 姓名比對前先清掉所有空白(含中間多打的空白、全形空白),避免漏抓重複
       const normalizeName = (n) => (n || "").replace(/\s+/g, "").replace(/\u3000/g, "");
+
+      // 同姓名+同組別 → 視為資料重複
       const countMap = {};
       allVolunteers.forEach((v) => {
         const key = `${v.group}||${normalizeName(v.name)}`;
         countMap[key] = (countMap[key] || 0) + 1;
       });
-      const dupNames = new Set();
+
+      // 同姓名+不同組別 → 可能是身兼多職,只提醒不算錯誤
+      const nameGroupMap = {};
       allVolunteers.forEach((v) => {
-        const key = `${v.group}||${normalizeName(v.name)}`;
-        if (countMap[key] > 1) dupNames.add((v.name || "").trim() + "(" + v.group + ")");
+        const n = normalizeName(v.name);
+        if (!n) return;
+        if (!nameGroupMap[n]) nameGroupMap[n] = new Set();
+        nameGroupMap[n].add(v.group);
       });
-      updateDupBanner(Array.from(dupNames));
+
+      const dupNames = new Set();
+      const multiRoleNames = new Set();
+      allVolunteers.forEach((v) => {
+        const n = normalizeName(v.name);
+        const key = `${v.group}||${n}`;
+        if (countMap[key] > 1) {
+          dupNames.add((v.name || "").trim() + "(" + v.group + ")");
+        }
+        if (nameGroupMap[n] && nameGroupMap[n].size > 1) {
+          multiRoleNames.add((v.name || "").trim() + "(" + Array.from(nameGroupMap[n]).join("、") + ")");
+        }
+      });
+      updateDupBanner(Array.from(dupNames), Array.from(multiRoleNames));
+
+      const statsPanel = document.getElementById("statsPanel");
+      if (statsPanel && statsPanel.style.display !== "none") renderStatsPanel();
 
       list.forEach((v, i) => {
-        const key = `${v.group}||${normalizeName(v.name)}`;
+        const n = normalizeName(v.name);
+        const key = `${v.group}||${n}`;
         const isDup = countMap[key] > 1;
-        addRow(v.id, v, false, i + 1, isDup);
+        const isMultiRole = nameGroupMap[n] && nameGroupMap[n].size > 1;
+        addRow(v.id, v, false, i + 1, isDup, isMultiRole);
       });
     }
 
-    function updateDupBanner(dupNames) {
+    function updateDupBanner(dupNames, multiRoleNames) {
       const banner = document.getElementById("dupBanner");
-      if (!banner) return;
-      if (!dupNames.length) {
-        banner.style.display = "none";
-        banner.textContent = "";
-        return;
+      if (banner) {
+        if (!dupNames.length) {
+          banner.style.display = "none";
+          banner.textContent = "";
+        } else {
+          banner.style.display = "block";
+          banner.textContent = `⚠️ 發現 ${dupNames.length} 位重複志工(同姓名+同組別,已用黃色標示,建議直接刪除多的):${dupNames.join("、")}`;
+        }
       }
-      banner.style.display = "block";
-      banner.textContent = `⚠️ 發現 ${dupNames.length} 位重複志工(同姓名+同組別,已用黃色標示):${dupNames.join("、")}`;
+
+      const multiBanner = document.getElementById("multiRoleBanner");
+      if (multiBanner) {
+        if (!multiRoleNames.length) {
+          multiBanner.style.display = "none";
+          multiBanner.textContent = "";
+        } else {
+          multiBanner.style.display = "block";
+          multiBanner.textContent = `ℹ️ 發現 ${multiRoleNames.length} 位同名但分在不同組別(已用藍色標示「兼任」,可能是身兼多職,也可能是誤植,請自行確認):${multiRoleNames.join("、")}`;
+        }
+      }
     }
 
-    function addRow(id, data = {}, isNew = true, seq = null, isDup = false) {
+    function addRow(id, data = {}, isNew = true, seq = null, isDup = false, isMultiRole = false) {
       const tbody = document.getElementById("tableBody");
       const tr = document.createElement("tr");
       tr.dataset.id = id || "";
       if (isDup) tr.classList.add("dup-row");
+      if (isMultiRole) tr.classList.add("multi-role-row");
+
+      const badge =
+        (isDup ? `<span class="dup-badge">重複</span>` : "") +
+        (isMultiRole ? `<span class="multi-role-badge">兼任</span>` : "");
 
       tr.innerHTML = `
         <td>${seq !== null ? seq : ""}</td>
         <td>${!isNew ? `<input type="checkbox" class="rowCheck" />` : ""}</td>
-        <td><input type="text" class="nameInput" value="${data.name || ""}" placeholder="姓名" />${isDup ? `<span class="dup-badge">重複</span>` : ""}</td>
+        <td><input type="text" class="nameInput" value="${data.name || ""}" placeholder="姓名" />${badge}</td>
         <td><select class="groupInput">${groupOptions(data.group)}</select></td>
         <td>
           ${!isNew ? `<button class="del-btn">刪除</button>` : ""}
@@ -675,9 +817,35 @@
       document.querySelectorAll(".rowCheck").forEach((cb) => (cb.checked = e.target.checked));
     });
 
-    document.getElementById("nameSearch").addEventListener("input", (e) => {
-      currentSearch = e.target.value.trim().toLowerCase();
+    // 中文輸入法在「組字中」也會觸發 input 事件(此時文字還沒打完),
+    // 如果邊組字邊篩選,常常會篩出「找不到」讓人誤以為搜尋功能壞了。
+    // 這裡用 isComposing 判斷,組字結束(compositionend)或按 Enter / 按搜尋鈕時才真正篩選。
+    let isComposingName = false;
+    const nameSearchInput = document.getElementById("nameSearch");
+    const nameSearchClearBtn = document.getElementById("nameSearchClearBtn");
+
+    function runNameSearch() {
+      currentSearch = nameSearchInput.value.trim().toLowerCase();
+      nameSearchClearBtn.style.display = currentSearch ? "inline-block" : "none";
       renderTable();
+    }
+
+    nameSearchInput.addEventListener("compositionstart", () => { isComposingName = true; });
+    nameSearchInput.addEventListener("compositionend", () => {
+      isComposingName = false;
+      runNameSearch();
+    });
+    nameSearchInput.addEventListener("input", () => {
+      if (isComposingName) return; // 組字中先不篩選,避免打到一半就顯示「找不到」
+      runNameSearch();
+    });
+    nameSearchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") runNameSearch();
+    });
+    document.getElementById("nameSearchBtn").addEventListener("click", runNameSearch);
+    nameSearchClearBtn.addEventListener("click", () => {
+      nameSearchInput.value = "";
+      runNameSearch();
     });
 
     document.getElementById("deleteSelectedBtn").addEventListener("click", async () => {
