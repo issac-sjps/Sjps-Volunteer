@@ -49,6 +49,12 @@
   .group-medical { background: #e8f8ef !important; }
   .group-story   { background: #f5ecff !important; }
   .group-library { background: #f5ebe0 !important; }
+  tr.dup-row td { background: #fff3cd !important; }
+  tr.dup-row .nameInput { border: 2px solid #e0a800; background: #fff3cd; }
+  .dup-badge {
+    display: inline-block; margin-left: 4px; font-size: 11px; color: #fff;
+    background: #e0a800; border-radius: 4px; padding: 1px 5px; vertical-align: middle;
+  }
   .toolbar .settings-btn { background: #7d6608; }
   .toolbar .import-btn { background: #8e44ad; }
   .import-panel {
@@ -139,8 +145,8 @@
       <button id="printSelectedBtn">列印所選</button>
       <button id="printAllBtn">列印全部</button>
       <button id="deleteSelectedBtn" style="background:#c0392b;">刪除所選</button>
-      <button id="toggleSettingsBtn" class="settings-btn">卡片設定</button>
-      <button id="toggleImportBtn" class="import-btn">名單匯入/匯出</button>
+      <button id="toggleSettingsBtn" class="settings-btn" title="再按一次可收合面板">卡片設定</button>
+      <button id="toggleImportBtn" class="import-btn" title="再按一次可收合面板">名單匯入/匯出</button>
     </div>
     <div class="import-panel" id="importPanel" style="display:none;">
       <h3>名單匯入 / 匯出(Excel 檔案,共 6 個工作表)</h3>
@@ -212,6 +218,7 @@
       </div>
     </div>
     <div class="save-hint">改完姓名或組別後,記得按「總儲存」一次儲存全部</div>
+    <div id="dupBanner" style="display:none; max-width:640px; margin:0 auto 12px; background:#fff3cd; border:1px solid #e0a800; color:#7d6608; border-radius:6px; padding:10px 14px; font-size:13px; line-height:1.6;"></div>
     <div class="filter-bar" style="margin-bottom:6px;">
       <input type="text" id="nameSearch" placeholder="搜尋姓名..." style="max-width:300px; padding:7px 10px; border:1px solid #ccc; border-radius:20px; font-size:13px; box-sizing:border-box;" />
     </div>
@@ -274,7 +281,10 @@
 
     document.getElementById("toggleSettingsBtn").addEventListener("click", () => {
       const panel = document.getElementById("settingsPanel");
-      panel.style.display = panel.style.display === "none" ? "block" : "none";
+      const btn = document.getElementById("toggleSettingsBtn");
+      const isOpen = panel.style.display !== "none";
+      panel.style.display = isOpen ? "none" : "block";
+      btn.textContent = isOpen ? "卡片設定" : "收合面板 ▲";
     });
 
     async function loadSettings() {
@@ -320,7 +330,10 @@
 
     document.getElementById("toggleImportBtn").addEventListener("click", () => {
       const panel = document.getElementById("importPanel");
-      panel.style.display = panel.style.display === "none" ? "block" : "none";
+      const btn = document.getElementById("toggleImportBtn");
+      const isOpen = panel.style.display !== "none";
+      panel.style.display = isOpen ? "none" : "block";
+      btn.textContent = isOpen ? "名單匯入/匯出" : "收合面板 ▲";
     });
 
     // 產生 6 個工作表的 Excel 檔並觸發下載
@@ -428,18 +441,17 @@
           await Promise.all(allVolunteers.map((v) => deleteDoc(doc(db, "volunteers", v.id)).catch(() => {})));
         }
 
-        // 去除重複:同姓名+同組別視為同一人。
-        // 新增模式下,若資料庫已經有一樣的人,就跳過不重複建立;
-        // 同一份 Excel 檔裡如果自己就重複列了兩次,也只保留第一筆。
+        // 去除重複:同姓名+同組別視為同一人(姓名比對前會清掉空白,含中間多打的空白)。
+        const normalizeName = (n) => (n || "").replace(/\s+/g, "").replace(/\u3000/g, "");
         const existingKeySet = new Set(
           mode === "overwrite"
             ? []
-            : allVolunteers.map((v) => `${v.group}||${(v.name || "").trim()}`)
+            : allVolunteers.map((v) => `${v.group}||${normalizeName(v.name)}`)
         );
         let duplicateSkipCount = 0;
         const entriesToInsert = [];
         for (const entry of parsedEntries) {
-          const key = `${entry.group}||${entry.name.trim()}`;
+          const key = `${entry.group}||${normalizeName(entry.name)}`;
           if (existingKeySet.has(key)) {
             duplicateSkipCount++;
             continue;
@@ -525,20 +537,54 @@
       }
       if (!list.length) {
         tbody.innerHTML = "<tr><td colspan='5'>目前沒有符合的志工資料</td></tr>";
+        updateDupBanner([]);
         return;
       }
-      list.forEach((v, i) => addRow(v.id, v, false, i + 1));
+
+      // 找出「同姓名+同組別」重複的人(以目前全部名單為準,不受篩選/搜尋影響)
+      // 姓名比對前先清掉所有空白(含中間多打的空白、全形空白),避免漏抓重複
+      const normalizeName = (n) => (n || "").replace(/\s+/g, "").replace(/\u3000/g, "");
+      const countMap = {};
+      allVolunteers.forEach((v) => {
+        const key = `${v.group}||${normalizeName(v.name)}`;
+        countMap[key] = (countMap[key] || 0) + 1;
+      });
+      const dupNames = new Set();
+      allVolunteers.forEach((v) => {
+        const key = `${v.group}||${normalizeName(v.name)}`;
+        if (countMap[key] > 1) dupNames.add((v.name || "").trim() + "(" + v.group + ")");
+      });
+      updateDupBanner(Array.from(dupNames));
+
+      list.forEach((v, i) => {
+        const key = `${v.group}||${normalizeName(v.name)}`;
+        const isDup = countMap[key] > 1;
+        addRow(v.id, v, false, i + 1, isDup);
+      });
     }
 
-    function addRow(id, data = {}, isNew = true, seq = null) {
+    function updateDupBanner(dupNames) {
+      const banner = document.getElementById("dupBanner");
+      if (!banner) return;
+      if (!dupNames.length) {
+        banner.style.display = "none";
+        banner.textContent = "";
+        return;
+      }
+      banner.style.display = "block";
+      banner.textContent = `⚠️ 發現 ${dupNames.length} 位重複志工(同姓名+同組別,已用黃色標示):${dupNames.join("、")}`;
+    }
+
+    function addRow(id, data = {}, isNew = true, seq = null, isDup = false) {
       const tbody = document.getElementById("tableBody");
       const tr = document.createElement("tr");
       tr.dataset.id = id || "";
+      if (isDup) tr.classList.add("dup-row");
 
       tr.innerHTML = `
         <td>${seq !== null ? seq : ""}</td>
         <td>${!isNew ? `<input type="checkbox" class="rowCheck" />` : ""}</td>
-        <td><input type="text" class="nameInput" value="${data.name || ""}" placeholder="姓名" /></td>
+        <td><input type="text" class="nameInput" value="${data.name || ""}" placeholder="姓名" />${isDup ? `<span class="dup-badge">重複</span>` : ""}</td>
         <td><select class="groupInput">${groupOptions(data.group)}</select></td>
         <td>
           ${!isNew ? `<button class="del-btn">刪除</button>` : ""}
