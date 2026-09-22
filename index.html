@@ -33,6 +33,68 @@
   .toolbar .save-all-btn { background: #2980b9; font-weight: bold; }
   .save-hint { text-align: center; font-size: 13px; color: #7c8a96; margin: -6px 0 16px; }
   .table-wrap { overflow-x: auto; max-width: 1100px; margin: 0 auto; }
+
+  .list-legend {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    max-width: 1100px; margin: 0 auto; background: #2c3e50; color: #fff;
+    border-radius: 10px 10px 0 0; overflow: hidden;
+  }
+  .legend-block {
+    display: flex; align-items: center; gap: 4px; padding: 10px 8px;
+    font-weight: 600; font-size: 13px; border-right: 1px solid rgba(255,255,255,0.15);
+  }
+  .list-legend .legend-block:last-child { border-right: none; }
+  .cell-seq { width: 40px; flex: none; text-align: center; }
+  .cell-chk { width: 30px; flex: none; text-align: center; }
+  .cell-name { flex: 1; min-width: 0; text-align: center; padding: 0 4px; }
+  .cell-group { width: 92px; flex: none; text-align: center; }
+  .cell-action { width: 74px; flex: none; text-align: center; }
+
+  .people-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    max-width: 1100px; margin: 0 auto; background: #fff;
+    border-radius: 0 0 10px 10px; overflow: hidden;
+    box-shadow: 0 2px 10px rgba(30,50,70,0.08);
+  }
+  .person-row {
+    display: flex; align-items: center; gap: 4px; padding: 8px;
+    border-bottom: 1px solid #e3e8ec; border-right: 1px solid #e3e8ec;
+  }
+  .people-grid .person-row:nth-child(2n) { border-right: none; }
+  .person-row:hover { background: #f5f9fc; }
+  .person-row .cell-name input, .person-row .cell-group select { width: 100%; }
+  .empty-msg, .loading-msg { grid-column: 1 / -1; text-align: center; padding: 30px; color: #888; }
+
+  #fabAddBtn {
+    position: fixed; right: 32px; bottom: 32px; width: 58px; height: 58px;
+    border-radius: 50%; background: #2f6f4f; color: #fff; border: none;
+    font-size: 28px; line-height: 1; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    z-index: 500; display: none; align-items: center; justify-content: center;
+  }
+  #fabAddBtn:hover { filter: brightness(1.1); }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(20,30,40,0.45);
+    display: flex; align-items: center; justify-content: center; z-index: 600;
+  }
+  .modal-box {
+    background: #fff; border-radius: 12px; padding: 24px 28px; width: 340px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  }
+  .modal-box h3 { margin: 0 0 16px; text-align: center; color: #234; }
+  .modal-row { margin-bottom: 12px; }
+  .modal-row label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; }
+  .modal-row input, .modal-row select {
+    width: 100%; padding: 9px 10px; font-size: 14px; box-sizing: border-box;
+    border: 1px solid #ccd3d9; border-radius: 6px;
+  }
+  .modal-msg { min-height: 18px; font-size: 12.5px; color: #2f6f4f; margin-bottom: 6px; }
+  .modal-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+  .modal-actions button {
+    padding: 10px; font-size: 14px; border: none; border-radius: 6px; cursor: pointer; color: #fff;
+  }
+  #addModalSubmitBtn { background: #2f6f4f; }
+  .modal-close-btn { background: #888 !important; }
   .filter-bar {
     max-width: 1100px; margin: 0 auto 16px; text-align: center;
     background: #fff; border-radius: 10px; padding: 14px 16px;
@@ -67,21 +129,21 @@
   .group-medical { background: #e8f8ef !important; }
   .group-story   { background: #f5ecff !important; }
   .group-library { background: #f5ebe0 !important; }
-  tr.dup-row td { background: #fff3cd !important; }
-  tr.dup-row .nameInput { border: 2px solid #e0a800; background: #fff3cd; }
+  .person-row.dup-row { background: #fff3cd !important; }
+  .person-row.dup-row .nameInput { border: 2px solid #e0a800; background: #fff3cd; }
   .dup-badge {
     display: inline-block; margin-left: 4px; font-size: 11px; color: #fff;
     background: #e0a800; border-radius: 4px; padding: 1px 5px; vertical-align: middle;
   }
-  tr.multi-role-row td { background: #e3f2fd !important; }
-  tr.multi-role-row .nameInput { border: 2px solid #4a90d9; background: #e3f2fd; }
+  .person-row.multi-role-row { background: #e3f2fd !important; }
+  .person-row.multi-role-row .nameInput { border: 2px solid #4a90d9; background: #e3f2fd; }
   .multi-role-badge {
     display: inline-block; margin-left: 4px; font-size: 11px; color: #fff;
     background: #4a90d9; border-radius: 4px; padding: 1px 5px; vertical-align: middle;
   }
   /* 同時符合「重複」與「兼任」時,以黃色(重複,較急迫)為主要底色 */
-  tr.dup-row.multi-role-row td { background: #fff3cd !important; }
-  tr.dup-row.multi-role-row .nameInput { border: 2px solid #e0a800; background: #fff3cd; }
+  .person-row.dup-row.multi-role-row { background: #fff3cd !important; }
+  .person-row.dup-row.multi-role-row .nameInput { border: 2px solid #e0a800; background: #fff3cd; }
   .toolbar .settings-btn { background: #7d6608; }
   .toolbar .import-btn { background: #8e44ad; }
   .import-panel {
@@ -141,6 +203,7 @@
     color: #555;
     font-size: 14px;
     padding: 30px 0;
+    grid-column: 1 / -1;
   }
   .spinner {
     display: inline-block;
@@ -262,19 +325,44 @@
       <button id="nameSearchClearBtn" type="button" style="display:none; border-radius:20px; padding:7px 14px; font-size:13px; background:#999;">清除</button>
     </div>
     <div class="filter-bar" id="filterBar"></div>
-    <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th style="width:36px;">序號</th>
-          <th style="width:36px;"><input type="checkbox" id="checkAll" /></th>
-          <th>姓名</th>
-          <th>組別</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
+    <div class="list-legend">
+      <div class="legend-block">
+        <span class="cell-seq">序號</span>
+        <span class="cell-chk"><input type="checkbox" id="checkAll" /></span>
+        <span class="cell-name">姓名</span>
+        <span class="cell-group">組別</span>
+        <span class="cell-action">操作</span>
+      </div>
+      <div class="legend-block">
+        <span class="cell-seq">序號</span>
+        <span class="cell-chk"></span>
+        <span class="cell-name">姓名</span>
+        <span class="cell-group">組別</span>
+        <span class="cell-action">操作</span>
+      </div>
+    </div>
+    <div class="people-grid" id="tableBody"></div>
+  </div>
+
+  <!-- 懸浮新增志工按鈕:不用滾到名單最下面就能新增 -->
+  <button id="fabAddBtn" title="新增志工" style="display:none;">＋</button>
+
+  <div class="modal-overlay" id="addModal" style="display:none;">
+    <div class="modal-box">
+      <h3>新增志工</h3>
+      <div class="modal-row">
+        <label>姓名</label>
+        <input type="text" id="addModalName" placeholder="請輸入姓名" />
+      </div>
+      <div class="modal-row">
+        <label>組別</label>
+        <select id="addModalGroup"></select>
+      </div>
+      <div class="modal-msg" id="addModalMsg"></div>
+      <div class="modal-actions">
+        <button id="addModalSubmitBtn">新增(可繼續新增下一位)</button>
+        <button id="addModalCloseBtn" class="modal-close-btn">完成 / 關閉</button>
+      </div>
     </div>
   </div>
 
@@ -307,6 +395,7 @@
       if (input === ADMIN_PASSWORD) {
         document.getElementById("lockScreen").style.display = "none";
         document.getElementById("mainContent").style.display = "block";
+        document.getElementById("fabAddBtn").style.display = "flex";
         buildFilterBar();
         loadVolunteers();
         loadSettings();
@@ -660,7 +749,7 @@
 
     async function loadVolunteers() {
       const tbody = document.getElementById("tableBody");
-      tbody.innerHTML = `<tr><td colspan="5"><div class="loading-box"><div class="spinner"></div><div>資料讀取中,請稍候...</div></div></td></tr>`;
+      tbody.innerHTML = `<div class="loading-box"><div class="spinner"></div><div>資料讀取中,請稍候...</div></div>`;
       const snap = await getDocs(collection(db, "volunteers"));
       allVolunteers = [];
       snap.forEach((docSnap) => {
@@ -725,7 +814,7 @@
         list = list.filter((v) => (v.name || "").toLowerCase().includes(currentSearch));
       }
       if (!list.length) {
-        tbody.innerHTML = "<tr><td colspan='5'>目前沒有符合的志工資料</td></tr>";
+        tbody.innerHTML = "<div class='empty-msg'>目前沒有符合的志工資料</div>";
         return;
       }
 
@@ -762,29 +851,28 @@
       }
     }
 
-    function addRow(id, data = {}, isNew = true, seq = null, isDup = false, isMultiRole = false) {
-      const tbody = document.getElementById("tableBody");
-      const tr = document.createElement("tr");
-      tr.dataset.id = id || "";
-      if (isDup) tr.classList.add("dup-row");
-      if (isMultiRole) tr.classList.add("multi-role-row");
+    function addRow(id, data = {}, isNew = false, seq = null, isDup = false, isMultiRole = false) {
+      const wrap = document.getElementById("tableBody");
+      const row = document.createElement("div");
+      row.className = "person-row";
+      row.dataset.id = id || "";
+      if (isDup) row.classList.add("dup-row");
+      if (isMultiRole) row.classList.add("multi-role-row");
 
       const badge =
         (isDup ? `<span class="dup-badge">重複</span>` : "") +
         (isMultiRole ? `<span class="multi-role-badge">兼任</span>` : "");
 
-      tr.innerHTML = `
-        <td>${seq !== null ? seq : ""}</td>
-        <td>${!isNew ? `<input type="checkbox" class="rowCheck" />` : ""}</td>
-        <td><input type="text" class="nameInput" value="${data.name || ""}" placeholder="姓名" />${badge}</td>
-        <td><select class="groupInput">${groupOptions(data.group)}</select></td>
-        <td>
-          ${!isNew ? `<button class="del-btn">刪除</button>` : ""}
-        </td>
+      row.innerHTML = `
+        <span class="cell-seq">${seq !== null ? seq : ""}</span>
+        <span class="cell-chk"><input type="checkbox" class="rowCheck" /></span>
+        <span class="cell-name"><input type="text" class="nameInput" value="${data.name || ""}" placeholder="姓名" />${badge}</span>
+        <span class="cell-group"><select class="groupInput">${groupOptions(data.group)}</select></span>
+        <span class="cell-action"><button class="del-btn">刪除</button></span>
       `;
-      tbody.appendChild(tr);
+      wrap.appendChild(row);
 
-      const groupSelect = tr.querySelector(".groupInput");
+      const groupSelect = row.querySelector(".groupInput");
       const applyGroupColor = () => {
         Object.values(groupColorClass).forEach((cls) => groupSelect.classList.remove(cls));
         const cls = groupColorClass[groupSelect.value];
@@ -793,28 +881,78 @@
       applyGroupColor();
       groupSelect.addEventListener("change", applyGroupColor);
 
-      const delBtn = tr.querySelector(".del-btn");
-      if (delBtn) {
-        delBtn.addEventListener("click", async () => {
-          if (!confirm(`確定要刪除「${data.name}」的資料嗎?`)) return;
-          try {
-            await deleteDoc(doc(db, "volunteers", id));
-            tr.remove();
-          } catch (err) {
-            console.error(err);
-            alert("刪除失敗:" + err.message);
-          }
-        });
-      }
+      const delBtn = row.querySelector(".del-btn");
+      delBtn.addEventListener("click", async () => {
+        if (!confirm(`確定要刪除「${data.name}」的資料嗎?`)) return;
+        try {
+          await deleteDoc(doc(db, "volunteers", id));
+          row.remove();
+        } catch (err) {
+          console.error(err);
+          alert("刪除失敗:" + err.message);
+        }
+      });
     }
 
-    document.getElementById("addBtn").addEventListener("click", () => {
-      addRow(null, {}, true);
+    // ===== 懸浮「新增志工」視窗:不用滾到名單最下面就能新增 =====
+    const addModal = document.getElementById("addModal");
+    const addModalName = document.getElementById("addModalName");
+    const addModalGroup = document.getElementById("addModalGroup");
+    const addModalMsg = document.getElementById("addModalMsg");
+
+    function openAddModal() {
+      addModalGroup.innerHTML = groupOptions();
+      addModalMsg.textContent = "";
+      addModalName.value = "";
+      addModal.style.display = "flex";
+      addModalName.focus();
+    }
+    function closeAddModal() {
+      addModal.style.display = "none";
+    }
+
+    document.getElementById("fabAddBtn").addEventListener("click", openAddModal);
+    document.getElementById("addBtn").addEventListener("click", openAddModal);
+    document.getElementById("addModalCloseBtn").addEventListener("click", closeAddModal);
+    addModal.addEventListener("click", (e) => {
+      if (e.target === addModal) closeAddModal(); // 點背景關閉
+    });
+
+    async function submitAddModal() {
+      const name = addModalName.value.trim();
+      if (!name) {
+        addModalMsg.style.color = "#c0392b";
+        addModalMsg.textContent = "請輸入姓名";
+        return;
+      }
+      const group = addModalGroup.value;
+      const docId = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      const submitBtn = document.getElementById("addModalSubmitBtn");
+      submitBtn.disabled = true;
+      try {
+        await setDoc(doc(db, "volunteers", docId), { name, group });
+        allVolunteers.push({ id: docId, name, group });
+        renderTable();
+        addModalMsg.style.color = "#2f6f4f";
+        addModalMsg.textContent = `已新增「${name}」(${group}),可繼續輸入下一位`;
+        addModalName.value = "";
+        addModalName.focus();
+      } catch (err) {
+        console.error(err);
+        addModalMsg.style.color = "#c0392b";
+        addModalMsg.textContent = "新增失敗:" + err.message;
+      } finally {
+        submitBtn.disabled = false;
+      }
+    }
+    document.getElementById("addModalSubmitBtn").addEventListener("click", submitAddModal);
+    addModalName.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitAddModal();
     });
 
     document.getElementById("saveAllBtn").addEventListener("click", async () => {
       const saveBtn = document.getElementById("saveAllBtn");
-      const rows = document.querySelectorAll("#tableBody tr");
+      const rows = document.querySelectorAll("#tableBody .person-row");
 
       // 進入儲存中狀態:按鈕變灰、文字改變、不能重複按
       const originalText = saveBtn.textContent;
@@ -899,7 +1037,7 @@
     });
 
     document.getElementById("deleteSelectedBtn").addEventListener("click", async () => {
-      const selectedTrs = Array.from(document.querySelectorAll("#tableBody tr")).filter((tr) => {
+      const selectedTrs = Array.from(document.querySelectorAll("#tableBody .person-row")).filter((tr) => {
         const cb = tr.querySelector(".rowCheck");
         return cb && cb.checked && tr.dataset.id;
       });
@@ -942,7 +1080,7 @@
 
     document.getElementById("printSelectedBtn").addEventListener("click", () => {
       const ids = [];
-      document.querySelectorAll("#tableBody tr").forEach((tr) => {
+      document.querySelectorAll("#tableBody .person-row").forEach((tr) => {
         const cb = tr.querySelector(".rowCheck");
         if (cb && cb.checked && tr.dataset.id) ids.push(tr.dataset.id);
       });
